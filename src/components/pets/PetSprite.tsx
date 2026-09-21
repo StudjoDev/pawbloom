@@ -1,9 +1,9 @@
 // PawBloom PetSprite - P0-4 Pet Lovability
-// Idle: base breathe + random fidget (yawn/scratch/look around) ≥3 kinds every 8-15s
-// Walk: real walk cycle (leg frames, not just translate)
-// Ground shadow, paw contact, no floating
+// Idle: base breathe + random fidget with DISTINCT phase offsets per pet
+// Walk: real walk cycle with ground contact (hop tied to frame, not float)
+// Ground shadow stays planted
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { getPetById, type Rarity, RARITY_COLORS } from '@/data/pets';
 
@@ -19,9 +19,14 @@ interface PetSpriteProps {
   className?: string;
   onClick?: () => void;
   onPoseComplete?: () => void;
+  showShadow?: boolean;
+  // P0-4: Phase offset for desynced idle animation (0-1)
+  phaseOffset?: number;
+  // Instance ID for deterministic randomness
+  instanceId?: string;
 }
 
-const WALK_FPS = 9;
+const WALK_FPS = 8;
 const WALK_FRAMES = 4;
 const ONE_SHOT_DURATION = 1000;
 const FIDGET_INTERVAL_MIN = 8000;
@@ -30,6 +35,33 @@ const FIDGET_INTERVAL_MAX = 15000;
 const getAssetBase = () => import.meta.env.BASE_URL || '/';
 
 const FIDGET_TYPES: FidgetType[] = ['yawn', 'scratch', 'look_left', 'look_right', 'ear_twitch', 'tail_wag'];
+
+// Generate deterministic random from string seed
+function seededRandom(seed: string): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return (Math.abs(hash) % 1000) / 1000;
+}
+
+// P0-4: Walk frame hop heights - small hop tied to frame, not continuous float
+const WALK_FRAME_HOP: Record<number, number> = {
+  1: 0,      // Contact frame - on ground
+  2: -3,     // Push off - slight lift
+  3: -5,     // Peak - highest point
+  4: -2,     // Landing - coming down
+};
+
+// P0-4: Walk frame squash/stretch
+const WALK_FRAME_SQUASH: Record<number, { scaleX: number; scaleY: number }> = {
+  1: { scaleX: 1.02, scaleY: 0.98 },  // Contact - squash
+  2: { scaleX: 0.98, scaleY: 1.02 },  // Push - stretch
+  3: { scaleX: 1.0, scaleY: 1.0 },    // Air - normal
+  4: { scaleX: 1.01, scaleY: 0.99 },  // Landing - slight squash
+};
 
 export const PetSprite: React.FC<PetSpriteProps> = ({
   petId,
@@ -40,6 +72,9 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
   className = '',
   onClick,
   onPoseComplete,
+  showShadow = true,
+  phaseOffset,
+  instanceId,
 }) => {
   const pet = getPetById(petId);
   const [walkFrame, setWalkFrame] = useState(1);
@@ -49,9 +84,32 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
   const walkIntervalRef = useRef<number | null>(null);
   const poseTimeoutRef = useRef<number | null>(null);
   const fidgetTimeoutRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
   
   const breatheControls = useAnimation();
   const fidgetControls = useAnimation();
+
+  // P0-4: Generate unique idle parameters per pet instance
+  const idleParams = useMemo(() => {
+    const seed = instanceId || petId;
+    const rand1 = seededRandom(seed + '_period');
+    const rand2 = seededRandom(seed + '_amplitude');
+    const rand3 = seededRandom(seed + '_phase');
+    
+    return {
+      // Period varies from 2.0s to 3.5s
+      period: 2.0 + rand1 * 1.5,
+      // Amplitude varies from 0.7x to 1.3x
+      amplitudeMultiplier: 0.7 + rand2 * 0.6,
+      // Phase offset from 0 to full period (use prop if provided)
+      phaseDelay: phaseOffset !== undefined ? phaseOffset : rand3,
+    };
+  }, [petId, instanceId, phaseOffset]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // Handle pose changes
   useEffect(() => {
@@ -65,8 +123,10 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
 
     if (pose === 'happy' || pose === 'surprised' || pose === 'sleepy') {
       poseTimeoutRef.current = window.setTimeout(() => {
-        setCurrentPose('idle');
-        onPoseComplete?.();
+        if (mountedRef.current) {
+          setCurrentPose('idle');
+          onPoseComplete?.();
+        }
       }, ONE_SHOT_DURATION);
     }
 
@@ -77,12 +137,14 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
     };
   }, [pose, onPoseComplete]);
 
-  // Walk frame animation - real walk cycle
+  // Walk frame animation - real walk cycle with frame swaps
   useEffect(() => {
     if (currentPose === 'walk') {
       const frameInterval = 1000 / WALK_FPS;
       walkIntervalRef.current = window.setInterval(() => {
-        setWalkFrame(prev => (prev % WALK_FRAMES) + 1);
+        if (mountedRef.current) {
+          setWalkFrame(prev => (prev % WALK_FRAMES) + 1);
+        }
       }, frameInterval);
     } else {
       if (walkIntervalRef.current) {
@@ -99,53 +161,76 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
     };
   }, [currentPose]);
 
-  // P0-4: Idle breathing animation
+  // P0-4: Idle breathing animation with DISTINCT phase offsets
   useEffect(() => {
     if (currentPose === 'idle' && !fidget) {
-      breatheControls.start({
-        y: [0, -4, 0, -2, 0],
-        scaleY: [1, 1.02, 1, 1.01, 1],
-        scaleX: [1, 0.99, 1, 0.995, 1],
-        transition: {
-          duration: 2.5,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        },
-      });
+      const { period, amplitudeMultiplier, phaseDelay } = idleParams;
+      const baseY = 4 * amplitudeMultiplier;
+      const halfY = 2 * amplitudeMultiplier;
+      
+      // Start animation after phase delay
+      const delayMs = phaseDelay * period * 1000;
+      
+      const startAnimation = () => {
+        if (!mountedRef.current || currentPose !== 'idle') return;
+        
+        breatheControls.start({
+          y: [0, -baseY, 0, -halfY, 0],
+          scaleY: [1, 1 + 0.02 * amplitudeMultiplier, 1, 1 + 0.01 * amplitudeMultiplier, 1],
+          scaleX: [1, 1 - 0.01 * amplitudeMultiplier, 1, 1 - 0.005 * amplitudeMultiplier, 1],
+          transition: {
+            duration: period,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          },
+        });
+      };
+      
+      const timer = setTimeout(startAnimation, delayMs);
+      return () => {
+        clearTimeout(timer);
+        breatheControls.stop();
+      };
     } else {
       breatheControls.stop();
     }
-  }, [currentPose, fidget, breatheControls]);
+  }, [currentPose, fidget, breatheControls, idleParams]);
 
-  // P0-4: Random fidget every 8-15 seconds
+  // P0-4: Random fidget every 8-15 seconds (with random initial delay per pet)
   const scheduleFidget = useCallback(() => {
-    if (currentPose !== 'idle') return;
+    if (currentPose !== 'idle' || !mountedRef.current) return;
     
     const delay = Math.random() * (FIDGET_INTERVAL_MAX - FIDGET_INTERVAL_MIN) + FIDGET_INTERVAL_MIN;
     
     fidgetTimeoutRef.current = window.setTimeout(() => {
-      if (currentPose !== 'idle') return;
+      if (currentPose !== 'idle' || !mountedRef.current) return;
       
-      // Pick random fidget
       const fidgetType = FIDGET_TYPES[Math.floor(Math.random() * FIDGET_TYPES.length)];
       setFidget(fidgetType);
       
-      // Play fidget animation
       playFidgetAnimation(fidgetType);
       
-      // Clear fidget after animation
       setTimeout(() => {
-        setFidget(null);
-        scheduleFidget();
+        if (mountedRef.current) {
+          setFidget(null);
+          scheduleFidget();
+        }
       }, 1500);
     }, delay);
   }, [currentPose]);
 
   useEffect(() => {
     if (currentPose === 'idle') {
-      scheduleFidget();
+      // Initial random delay so pets don't fidget at the same time
+      const initialDelay = Math.random() * 5000;
+      const timer = setTimeout(scheduleFidget, initialDelay);
+      return () => {
+        clearTimeout(timer);
+        if (fidgetTimeoutRef.current) {
+          clearTimeout(fidgetTimeoutRef.current);
+        }
+      };
     }
-    
     return () => {
       if (fidgetTimeoutRef.current) {
         clearTimeout(fidgetTimeoutRef.current);
@@ -154,11 +239,15 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
   }, [currentPose, scheduleFidget]);
 
   const playFidgetAnimation = async (type: FidgetType) => {
+    if (!mountedRef.current) return;
+    
+    const { amplitudeMultiplier } = idleParams;
+    
     switch (type) {
       case 'yawn':
         await fidgetControls.start({
-          scaleY: [1, 1.1, 1.15, 1],
-          y: [0, -5, -8, 0],
+          scaleY: [1, 1.1 * amplitudeMultiplier, 1.15 * amplitudeMultiplier, 1],
+          y: [0, -5 * amplitudeMultiplier, -8 * amplitudeMultiplier, 0],
           transition: { duration: 1.2, ease: 'easeInOut' },
         });
         break;
@@ -262,6 +351,11 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
 
   const isIdleBreathing = currentPose === 'idle' && !fidget;
   const isFidgeting = currentPose === 'idle' && fidget;
+  const isWalking = currentPose === 'walk';
+
+  // P0-4: Walk animation - small hop tied to frame
+  const walkHop = isWalking ? WALK_FRAME_HOP[walkFrame] : 0;
+  const walkSquash = isWalking ? WALK_FRAME_SQUASH[walkFrame] : { scaleX: 1, scaleY: 1 };
 
   return (
     <div
@@ -273,7 +367,7 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
         cursor: onClick ? 'pointer' : 'default',
         position: 'relative',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-end',
         justifyContent: 'center',
       }}
     >
@@ -295,67 +389,57 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
         />
       )}
 
-      {/* Ground shadow - P0-4: paw contact, no floating */}
-      {currentPose !== 'silhouette' && (
-        <motion.div
+      {/* Ground shadow - P0-4: stays PLANTED, doesn't move with pet */}
+      {showShadow && currentPose !== 'silhouette' && (
+        <div
           style={{
             position: 'absolute',
-            bottom: 4,
+            bottom: 2,
             left: '50%',
-            width: size * 0.45,
-            height: size * 0.06,
-            background: 'radial-gradient(ellipse, rgba(0,0,0,0.25) 0%, transparent 70%)',
+            width: size * 0.5,
+            height: size * 0.08,
+            background: 'radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%)',
             borderRadius: '50%',
-            transform: 'translateX(-50%)',
+            transform: `translateX(-50%) scaleX(${isWalking ? (walkFrame === 1 || walkFrame === 4 ? 1 : 0.85) : 1})`,
+            opacity: isWalking ? (walkFrame === 3 ? 0.2 : 0.3) : 0.3,
             zIndex: 0,
-          }}
-          animate={{
-            scaleX: currentPose === 'walk' 
-              ? [1, 0.85, 1] 
-              : isIdleBreathing
-              ? [1, 1.08, 1, 1.04, 1]
-              : [1, 1.05, 1],
-            opacity: currentPose === 'walk' 
-              ? [0.25, 0.18, 0.25] 
-              : [0.25, 0.2, 0.25],
-          }}
-          transition={{
-            duration: currentPose === 'walk' ? 0.25 : 2.5,
-            repeat: Infinity,
-            ease: 'easeInOut',
+            transition: 'transform 0.08s ease, opacity 0.08s ease',
           }}
         />
       )}
 
-      {/* Pet sprite */}
+      {/* Pet sprite container */}
       <motion.div
         style={{
           width: '100%',
           height: '100%',
           position: 'relative',
           zIndex: 1,
+          // P0-4: Walk hop is applied directly, not as continuous animation
+          transform: isWalking 
+            ? `translateY(${walkHop}px) scaleX(${walkSquash.scaleX}) scaleY(${walkSquash.scaleY})`
+            : undefined,
+          transition: isWalking ? 'transform 0.08s ease' : undefined,
         }}
         animate={
           isIdleBreathing 
             ? breatheControls 
             : isFidgeting 
             ? fidgetControls 
-            : currentPose !== 'walk' && currentPose !== 'silhouette'
+            : !isWalking && currentPose !== 'silhouette'
             ? getPoseAnimation()
-            : {}
+            : undefined
         }
         transition={
-          !isIdleBreathing && !isFidgeting && currentPose !== 'walk' && currentPose !== 'silhouette'
+          !isIdleBreathing && !isFidgeting && !isWalking && currentPose !== 'silhouette'
             ? getPoseTransition()
             : undefined
         }
       >
-        <motion.img
-          key={`${petId}-${currentPose}-${currentPose === 'walk' ? walkFrame : 0}`}
+        <img
+          key={`${petId}-${currentPose}-${isWalking ? walkFrame : 0}`}
           src={getImagePath()}
           alt={pet.name}
-          whileHover={onClick ? { scale: 1.05 } : undefined}
-          whileTap={onClick ? { scale: 0.95 } : undefined}
           style={{
             width: '100%',
             height: '100%',

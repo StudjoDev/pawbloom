@@ -224,6 +224,9 @@ const WalkScreen: React.FC = () => {
                 state={isWalking ? 'walk' : 'idle'}
                 rarity={pet.rarity}
                 showShadow={true}
+                // P0-4: Distinct phase offset so pets don't walk in sync
+                phaseOffset={index * 0.25}
+                instanceId={pet.instanceId}
               />
             </motion.div>
           ))}

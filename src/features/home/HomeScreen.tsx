@@ -200,6 +200,9 @@ const HomeScreen: React.FC = () => {
                   state={petStates[pet.instanceId] || 'idle'}
                   rarity={pet.rarity}
                   showShadow={true}
+                  // P0-4: Distinct phase offset per pet (0.37s spacing)
+                  phaseOffset={index * 0.37}
+                  instanceId={pet.instanceId}
                 />
                 {/* P0-4: Bond as hearts ❤️❤️♡ not XP numbers */}
                 <div className={styles.bondHearts}>
