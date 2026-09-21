@@ -203,28 +203,24 @@ const WalkScreen: React.FC = () => {
         </div>
       </motion.header>
       
-      {/* Walking pets */}
+      {/* Walking pets - GROUNDED on path band */}
       <div className={styles.walkArea}>
         <div className={styles.petsWalking}>
           {teamPets.map((pet, index) => (
             <motion.div
               key={pet.instanceId}
               className={styles.walkingPet}
-              style={{
-                left: `${15 + index * 28}%`,
-                zIndex: 10 - index
-              }}
+              style={{ zIndex: 10 - index }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.15 }}
             >
               <PetRenderer
                 petId={pet.petId}
-                size={90 - index * 10}
+                size={80 - index * 8}
                 state={isWalking ? 'walk' : 'idle'}
                 rarity={pet.rarity}
                 showShadow={true}
-                // P0-4: Distinct phase offset so pets don't walk in sync
                 phaseOffset={index * 0.25}
                 instanceId={pet.instanceId}
               />

@@ -64,6 +64,18 @@
 
 .revealedContainer {
   perspective: 1000px;
+  position: relative;
+}
+
+/* Heart floating above pet during heart_pause */
+.heartFloat {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 48px;
+  z-index: 10;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .revealText {

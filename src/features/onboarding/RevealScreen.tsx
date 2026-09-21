@@ -1,4 +1,5 @@
 // PawBloom Reveal Screen - First pet encounter reveal animation
+// P0-2: CRITICAL heart_pause phase - 1.5s pet+heart ONLY before any UI/card
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -6,16 +7,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 import { getPetById, RARITY_COLORS } from '@/data/pets';
 import { PetRenderer } from '@/components/pets/PetRenderer';
-import Button from '@/components/ui/Button';
+import { audioManager } from '@/services/audio/AudioManager';
+import { hapticsManager } from '@/services/audio/HapticsManager';
 import styles from './RevealScreen.module.css';
 
-type RevealPhase = 'silhouette' | 'revealing' | 'revealed' | 'card';
+// CRITICAL: Added 'heart_pause' phase for 1.5s quiet beat
+type RevealPhase = 'silhouette' | 'revealing' | 'revealed' | 'heart_pause' | 'navigate_naming';
 
 const RevealScreen: React.FC = () => {
   const navigate = useNavigate();
   const { selectedStarterId } = useGameStore();
   const [phase, setPhase] = useState<RevealPhase>('silhouette');
   const [showSparkles, setShowSparkles] = useState(false);
+  const [showHeart, setShowHeart] = useState(false);
   
   const pet = selectedStarterId ? getPetById(selectedStarterId) : null;
   
@@ -25,33 +29,67 @@ const RevealScreen: React.FC = () => {
       return;
     }
     
-    // Auto-progress through phases
+    // Auto-progress through phases with proper timing
     const timers: NodeJS.Timeout[] = [];
     
+    // Phase 1: silhouette (1.5s)
     timers.push(setTimeout(() => {
       setPhase('revealing');
+      audioManager.playSFX('reveal_whoosh');
     }, 1500));
     
+    // Phase 2: revealing -> revealed (0.8s)
     timers.push(setTimeout(() => {
       setPhase('revealed');
       setShowSparkles(true);
-    }, 2500));
+      audioManager.playSFX('sparkle');
+      hapticsManager.play('success');
+    }, 2300));
     
+    // Phase 3: Show heart and enter heart_pause (1s after revealed)
     timers.push(setTimeout(() => {
-      setPhase('card');
-    }, 4000));
+      setShowHeart(true);
+      setPhase('heart_pause');
+      audioManager.playSFX('bond_up');
+      console.log('[Reveal] heart_pause START - 1.5s quiet beat');
+    }, 3300));
+    
+    // Phase 4: After 1.5s heart_pause, navigate to naming
+    timers.push(setTimeout(() => {
+      console.log('[Reveal] heart_pause END - navigating to naming');
+      setPhase('navigate_naming');
+      navigate('/naming');
+    }, 4800)); // 3300 + 1500 = 4800ms
     
     return () => timers.forEach(clearTimeout);
   }, [selectedStarterId, navigate]);
   
+  // Handle tap to speed up reveal (but still respect heart_pause)
   const handleTapReveal = () => {
     if (phase === 'silhouette') {
       setPhase('revealing');
+      audioManager.playSFX('reveal_whoosh');
+      
       setTimeout(() => {
         setPhase('revealed');
         setShowSparkles(true);
-      }, 800);
-      setTimeout(() => setPhase('card'), 2000);
+        audioManager.playSFX('sparkle');
+        hapticsManager.play('success');
+      }, 600);
+      
+      setTimeout(() => {
+        setShowHeart(true);
+        setPhase('heart_pause');
+        audioManager.playSFX('bond_up');
+        console.log('[Reveal] heart_pause START (tap) - 1.5s quiet beat');
+      }, 1200);
+      
+      // CRITICAL: Must wait 1.5s in heart_pause before navigation
+      setTimeout(() => {
+        console.log('[Reveal] heart_pause END (tap) - navigating to naming');
+        setPhase('navigate_naming');
+        navigate('/naming');
+      }, 2700); // 1200 + 1500 = 2700ms
     }
   };
   
@@ -65,8 +103,8 @@ const RevealScreen: React.FC = () => {
           className={styles.radialGlow}
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ 
-            opacity: phase === 'revealed' || phase === 'card' ? 0.6 : 0,
-            scale: phase === 'revealed' || phase === 'card' ? 1.5 : 0.5
+            opacity: phase !== 'silhouette' && phase !== 'revealing' ? 0.6 : 0,
+            scale: phase !== 'silhouette' && phase !== 'revealing' ? 1.5 : 0.5
           }}
           transition={{ duration: 0.8 }}
           style={{
@@ -103,14 +141,14 @@ const RevealScreen: React.FC = () => {
         )}
       </AnimatePresence>
       
-      {/* Pet display */}
+      {/* Pet display - LARGE and centered */}
       <motion.div
         className={styles.petStage}
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Mystery state */}
+        {/* Mystery state - silhouette */}
         <AnimatePresence mode="wait">
           {(phase === 'silhouette' || phase === 'revealing') && (
             <motion.div
@@ -124,11 +162,11 @@ const RevealScreen: React.FC = () => {
                   scale: [1, 1.1, 1],
                   filter: ['brightness(0)', 'brightness(0.5)', 'brightness(0)']
                 } : {}}
-                transition={{ duration: 0.8 }}
+                transition={{ duration: 0.6 }}
               >
                 <PetRenderer
                   petId={selectedStarterId!}
-                  size={200}
+                  size={220}
                   state="silhouette"
                 />
               </motion.div>
@@ -143,8 +181,8 @@ const RevealScreen: React.FC = () => {
             </motion.div>
           )}
           
-          {/* Revealed state */}
-          {(phase === 'revealed' || phase === 'card') && (
+          {/* Revealed state - full color pet */}
+          {(phase === 'revealed' || phase === 'heart_pause' || phase === 'navigate_naming') && (
             <motion.div
               key="revealed"
               className={styles.revealedContainer}
@@ -158,19 +196,40 @@ const RevealScreen: React.FC = () => {
             >
               <PetRenderer
                 petId={selectedStarterId!}
-                size={220}
+                size={240}
                 state="happy"
                 showRarityGlow
                 rarity="common"
               />
+              
+              {/* Heart - CRITICAL for heart_pause phase */}
+              <AnimatePresence>
+                {showHeart && (
+                  <motion.div
+                    className={styles.heartFloat}
+                    initial={{ opacity: 0, scale: 0, y: 0 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: [1, 1.2, 1],
+                      y: -40 
+                    }}
+                    transition={{ 
+                      scale: { duration: 1, repeat: Infinity },
+                      y: { type: 'spring', stiffness: 200 }
+                    }}
+                  >
+                    ❤️
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
       
-      {/* Reveal text */}
+      {/* Pet name text - only show after reveal, not during heart_pause focus */}
       <AnimatePresence>
-        {phase === 'revealed' && (
+        {(phase === 'revealed' || phase === 'heart_pause') && (
           <motion.div
             className={styles.revealText}
             initial={{ opacity: 0, y: 20 }}
@@ -179,68 +238,12 @@ const RevealScreen: React.FC = () => {
             transition={{ duration: 0.5 }}
           >
             <h2 className={styles.petName}>{pet.name}</h2>
-            <p className={styles.catchPhrase}>"{pet.catchPhrases[0]}"</p>
+            <p className={styles.catchPhrase}>wants to be your friend!</p>
           </motion.div>
         )}
       </AnimatePresence>
       
-      {/* Collection card */}
-      <AnimatePresence>
-        {phase === 'card' && (
-          <motion.div
-            className={styles.cardContainer}
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ 
-              type: 'spring',
-              stiffness: 300,
-              damping: 25
-            }}
-          >
-            <div className={styles.collectionCard}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardBadge}>NEW FRIEND!</span>
-              </div>
-              
-              <div className={styles.cardBody}>
-                <h2 className={styles.cardName}>{pet.name}</h2>
-                <p className={styles.cardDesc}>{pet.description}</p>
-                
-                <div className={styles.cardStats}>
-                  <div className={styles.stat}>
-                    <span className={styles.statLabel}>Species</span>
-                    <span className={styles.statValue}>
-                      {pet.species === 'dog' ? '🐕 Dog' : '🐱 Cat'}
-                    </span>
-                  </div>
-                  <div className={styles.stat}>
-                    <span className={styles.statLabel}>Rarity</span>
-                    <span className={styles.statValue} style={{ color: RARITY_COLORS.common }}>
-                      ★ Common
-                    </span>
-                  </div>
-                </div>
-                
-                <p className={styles.funFact}>
-                  <strong>Fun Fact:</strong> {pet.funFact}
-                </p>
-              </div>
-              
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/naming');
-                }}
-              >
-                Give a Nickname!
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* NO CARD OR BUTTONS during reveal/heart_pause - navigation handles naming */}
     </div>
   );
 };
