@@ -63,10 +63,13 @@ const EncounterScreen: React.FC = () => {
 
   // Phase progression - EXACT beat sheet
   useEffect(() => {
-    if (!pendingEncounter) {
+    // Don't navigate away if showing share card
+    if (!pendingEncounter && !showShareCard) {
       navigate('/walk', { replace: true });
       return;
     }
+    
+    if (!pendingEncounter) return;
 
     audioManager.duckBGM(3000);
     
@@ -99,7 +102,7 @@ const EncounterScreen: React.FC = () => {
     timers.push(setTimeout(() => setPhase('wait_tap'), 3000));
     
     return () => timers.forEach(clearTimeout);
-  }, [pendingEncounter, navigate, silhouetteControls]);
+  }, [pendingEncounter, navigate, silhouetteControls, showShareCard]);
 
   // Handle player TAP to reveal
   const handleTapReveal = useCallback(async () => {
@@ -236,6 +239,26 @@ const EncounterScreen: React.FC = () => {
     audioManager.playBGM('walk');
     navigate('/walk', { replace: true });
   };
+  
+  // If showing share card, keep rendering even if encounter cleared
+  if (showShareCard && collectedPetData) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.background} style={{ background: '#B8D4E8' }} />
+        <ShareCard
+          isOpen={showShareCard}
+          onClose={handleShareCardClose}
+          petId={collectedPetData.petId}
+          petName={collectedPetData.petName}
+          nickname={collectedPetData.nickname}
+          personality={collectedPetData.personality}
+          rarity={collectedPetData.rarity}
+          steps={collectedPetData.steps}
+          discoveredAt={collectedPetData.discoveredAt}
+        />
+      </div>
+    );
+  }
   
   if (!pet || !pendingEncounter) return null;
   
