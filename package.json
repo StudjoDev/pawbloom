@@ -1,7 +1,7 @@
 {
   "name": "pawbloom",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "PawBloom — Walk. Meet. Collect. Bond. A cozy walking pet collection game.",
   "scripts": {

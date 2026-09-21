@@ -15,7 +15,6 @@ import ShareCard from '@/components/ui/ShareCard';
 import styles from './EncounterScreen.module.css';
 
 type EncounterPhase = 
-  | 'approach'      // Pre-encounter countdown
   | 'dim'           // Background dims -15%
   | 'bush_shake_1'  // First bush shake
   | 'pause'         // Suspenseful pause
@@ -27,19 +26,18 @@ type EncounterPhase =
   | 'flash'         // Radial flash 300ms
   | 'crossfade'     // Pet crossfade in
   | 'landing'       // Blink → head tilt → tail wag
-  | 'heart_pause'   // 1-1.5s NO UI, only pet + ❤️
-  | 'show_ui';      // Stagger CTAs
+  | 'heart_pause'   // 1-1.5s NO UI, only pet + ❤️ (CRITICAL!)
+  | 'show_ui';      // Stagger CTAs (nickname + buttons)
 
 const EncounterScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { pendingEncounter, collectPet, clearEncounter, currentEnvironment, player } = useGameStore();
+  const { pendingEncounter, collectPet, clearEncounter, currentEnvironment } = useGameStore();
   
   const [phase, setPhase] = useState<EncounterPhase>('dim');
   const [nickname, setNickname] = useState('');
   const [isCollecting, setIsCollecting] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
-  const [ctaVisible, setCtaVisible] = useState({ bond: false, collect: false, skip: false });
   const [showShareCard, setShowShareCard] = useState(false);
   const [collectedPetData, setCollectedPetData] = useState<{
     petId: string;
@@ -54,17 +52,14 @@ const EncounterScreen: React.FC = () => {
   const silhouetteControls = useAnimation();
   const petControls = useAnimation();
   const tapAreaRef = useRef<HTMLDivElement>(null);
+  const revealInProgress = useRef(false);
   
   const pet = pendingEncounter ? getPetById(pendingEncounter.petId) : null;
   const rarity = pendingEncounter?.rarity || 'common';
   const personality = pendingEncounter?.personality || 'playful';
   
   const rarityConfig = useMemo(() => getRarityConfig(rarity), [rarity]);
-  const isFirstOfKind = useMemo(() => {
-    if (!pendingEncounter || !player) return true;
-    // Check if this is first time encountering this pet type
-    return true; // For now, always show "New" ribbon
-  }, [pendingEncounter, player]);
+  const isFirstOfKind = true; // Always show "New" for now
 
   // Phase progression - EXACT beat sheet
   useEffect(() => {
@@ -73,38 +68,27 @@ const EncounterScreen: React.FC = () => {
       return;
     }
 
-    // Duck BGM for tension
     audioManager.duckBGM(3000);
     
     const timers: NodeJS.Timeout[] = [];
     
-    // Phase: dim (background dims -15%)
-    // Already in dim phase
-    
-    // Phase: bush_shake_1 (first shake)
     timers.push(setTimeout(() => {
       setPhase('bush_shake_1');
       audioManager.playSFX('rustle');
       hapticsManager.play('light');
     }, 500));
     
-    // Phase: pause (suspenseful pause)
-    timers.push(setTimeout(() => {
-      setPhase('pause');
-    }, 1100));
+    timers.push(setTimeout(() => setPhase('pause'), 1100));
     
-    // Phase: bush_shake_2 (second shake)
     timers.push(setTimeout(() => {
       setPhase('bush_shake_2');
       audioManager.playSFX('encounter_rumble');
       hapticsManager.play('medium');
     }, 1600));
     
-    // Phase: silhouette (BREATHING silhouette appears)
     timers.push(setTimeout(() => {
       setPhase('silhouette');
       audioManager.playSFX('silhouette');
-      // Start breathing animation
       silhouetteControls.start({
         scale: [1, 1.03, 1],
         y: [0, -3, 0],
@@ -112,10 +96,7 @@ const EncounterScreen: React.FC = () => {
       });
     }, 2200));
     
-    // Phase: wait_tap (prompt player)
-    timers.push(setTimeout(() => {
-      setPhase('wait_tap');
-    }, 3000));
+    timers.push(setTimeout(() => setPhase('wait_tap'), 3000));
     
     return () => timers.forEach(clearTimeout);
   }, [pendingEncounter, navigate, silhouetteControls]);
@@ -123,6 +104,8 @@ const EncounterScreen: React.FC = () => {
   // Handle player TAP to reveal
   const handleTapReveal = useCallback(async () => {
     if (phase !== 'wait_tap' && phase !== 'silhouette') return;
+    if (revealInProgress.current) return;
+    revealInProgress.current = true;
     
     audioManager.playSFX('tap');
     hapticsManager.play('tap');
@@ -151,7 +134,6 @@ const EncounterScreen: React.FC = () => {
     setShowFlash(true);
     audioManager.playSFX('sparkle');
     
-    // Play rarity-specific sting
     const raritySfx = `rarity_${rarity}` as const;
     audioManager.playSFX(raritySfx);
     hapticsManager.rarityFeedback(rarity);
@@ -177,24 +159,22 @@ const EncounterScreen: React.FC = () => {
     setShowHeart(true);
     audioManager.playSFX('bond_up');
     
-    // Phase: heart_pause (1.5s NO UI, only pet + ❤️)
+    // CRITICAL: Phase heart_pause - 1.5s NO UI (only pet + heart visible)
     setPhase('heart_pause');
+    console.log('[Encounter] heart_pause START - NO UI for 1.5s');
     
+    // Wait EXACTLY 1.5 seconds with NO UI
     await new Promise(r => setTimeout(r, 1500));
     
-    // Phase: show_ui (stagger CTAs)
+    console.log('[Encounter] heart_pause END - showing UI');
+    
+    // Phase: show_ui (NOW show the modal)
     setPhase('show_ui');
-    
-    // Stagger CTA appearance (50ms apart per spec)
-    setTimeout(() => setCtaVisible(v => ({ ...v, bond: true })), 0);
-    setTimeout(() => setCtaVisible(v => ({ ...v, collect: true })), 50);
-    setTimeout(() => setCtaVisible(v => ({ ...v, skip: true })), 100);
-    
-    // Resume BGM
     audioManager.playBGM('home');
     
   }, [phase, rarity, silhouetteControls, petControls]);
   
+  // Handle collect - persists pet AND shows share card
   const handleCollect = async () => {
     if (isCollecting || !pet || !pendingEncounter) return;
     
@@ -203,8 +183,8 @@ const EncounterScreen: React.FC = () => {
     hapticsManager.play('success');
     
     try {
-      // Save data for share card before collecting
-      setCollectedPetData({
+      // Save data for share card BEFORE collecting
+      const shareData = {
         petId: pendingEncounter.petId,
         petName: pet.name,
         nickname: nickname.trim() || undefined,
@@ -212,11 +192,19 @@ const EncounterScreen: React.FC = () => {
         rarity,
         steps: useGameStore.getState().currentSteps,
         discoveredAt: Date.now(),
+      };
+      
+      // Collect pet (persists to DB + updates team)
+      const newPet = await collectPet(nickname.trim() || undefined);
+      console.log('[Encounter] Pet collected:', newPet.instanceId);
+      
+      // Update share data with final nickname
+      setCollectedPetData({
+        ...shareData,
+        nickname: newPet.nickname,
       });
       
-      await collectPet(nickname.trim() || undefined);
-      
-      // Show share card for NEW pets (P0-5)
+      // Show share card (P0-5)
       setShowShareCard(true);
     } catch (error) {
       console.error('Failed to collect pet:', error);
@@ -224,13 +212,26 @@ const EncounterScreen: React.FC = () => {
     }
   };
 
+  // Handle share card close - navigate to home
   const handleShareCardClose = () => {
     setShowShareCard(false);
     navigate('/home', { replace: true });
   };
   
-  const handleSkip = () => {
+  // Handle skip - still persists pet first!
+  const handleSkip = async () => {
+    if (!pet || !pendingEncounter) return;
+    
     audioManager.playSFX('ui_back');
+    
+    // Still collect the pet (just skip share card)
+    try {
+      await collectPet(nickname.trim() || undefined);
+      console.log('[Encounter] Pet collected (skipped share)');
+    } catch (error) {
+      console.error('Failed to collect pet:', error);
+    }
+    
     clearEncounter();
     audioManager.playBGM('walk');
     navigate('/walk', { replace: true });
@@ -238,13 +239,16 @@ const EncounterScreen: React.FC = () => {
   
   if (!pet || !pendingEncounter) return null;
   
-  const isDimmed = phase !== 'approach';
+  // Render conditions based on phase
+  const isDimmed = true;
   const showBush = ['dim', 'bush_shake_1', 'pause', 'bush_shake_2'].includes(phase);
   const isBushShaking = phase === 'bush_shake_1' || phase === 'bush_shake_2';
   const showSilhouette = ['silhouette', 'wait_tap', 'squash_pulse', 'freeze_spark'].includes(phase);
   const showPet = ['flash', 'crossfade', 'landing', 'heart_pause', 'show_ui'].includes(phase);
   const showTapPrompt = phase === 'wait_tap';
-  const showCard = phase === 'show_ui';
+  
+  // CRITICAL: Only show modal in show_ui phase (NOT heart_pause)
+  const showModal = phase === 'show_ui';
   
   return (
     <div 
@@ -255,9 +259,7 @@ const EncounterScreen: React.FC = () => {
       {/* Background with dim effect */}
       <motion.div 
         className={styles.background}
-        animate={{ 
-          filter: isDimmed ? 'brightness(0.85)' : 'brightness(1)',
-        }}
+        animate={{ filter: isDimmed ? 'brightness(0.85)' : 'brightness(1)' }}
         transition={{ duration: 0.5 }}
         style={{
           background: `linear-gradient(180deg, ${getEnvSkyColor(currentEnvironment)} 0%, var(--color-background) 100%)`
@@ -267,9 +269,7 @@ const EncounterScreen: React.FC = () => {
       {/* Camera zoom effect */}
       <motion.div
         className={styles.cameraContainer}
-        animate={{
-          scale: isDimmed ? 1.04 : 1,
-        }}
+        animate={{ scale: isDimmed ? 1.04 : 1 }}
         transition={{ duration: 1 }}
       >
         {/* Bush */}
@@ -294,7 +294,7 @@ const EncounterScreen: React.FC = () => {
           )}
         </AnimatePresence>
         
-        {/* BREATHING Silhouette (not static!) */}
+        {/* BREATHING Silhouette */}
         <AnimatePresence>
           {showSilhouette && (
             <motion.div
@@ -349,7 +349,7 @@ const EncounterScreen: React.FC = () => {
           )}
         </AnimatePresence>
         
-        {/* Revealed Pet with landing animation */}
+        {/* Revealed Pet */}
         <AnimatePresence>
           {showPet && (
             <motion.div
@@ -367,8 +367,8 @@ const EncounterScreen: React.FC = () => {
                 />
               </motion.div>
               
-              {/* Restrained particles - 8-14 petals + few sparkles */}
-              <RarityParticles rarity={rarity} config={rarityConfig} />
+              {/* Restrained particles */}
+              <RarityParticles config={rarityConfig} />
               
               {/* Heart ❤️ */}
               <AnimatePresence>
@@ -384,7 +384,7 @@ const EncounterScreen: React.FC = () => {
                 )}
               </AnimatePresence>
               
-              {/* Name bounce + New ribbon (only in show_ui phase) */}
+              {/* Name + New ribbon (only in show_ui) */}
               <AnimatePresence>
                 {phase === 'show_ui' && (
                   <motion.div
@@ -393,13 +393,8 @@ const EncounterScreen: React.FC = () => {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   >
-                    {isFirstOfKind && (
-                      <span className={styles.newRibbon}>NEW!</span>
-                    )}
-                    <span 
-                      className={styles.petNameBounce}
-                      style={{ color: rarityConfig.color }}
-                    >
+                    {isFirstOfKind && <span className={styles.newRibbon}>NEW!</span>}
+                    <span className={styles.petNameBounce} style={{ color: rarityConfig.color }}>
                       {pet.name}
                     </span>
                     <span className={styles.personalityText}>
@@ -413,9 +408,9 @@ const EncounterScreen: React.FC = () => {
         </AnimatePresence>
       </motion.div>
       
-      {/* Collection Card - only after heart_pause */}
+      {/* Collection Modal - ONLY in show_ui phase (NOT heart_pause!) */}
       <AnimatePresence>
-        {showCard && (
+        {showModal && (
           <motion.div
             className={styles.cardOverlay}
             initial={{ opacity: 0 }}
@@ -426,7 +421,7 @@ const EncounterScreen: React.FC = () => {
               className={styles.collectionCard}
               initial={{ y: 200, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 22, delay: 0.1 }}
             >
               {/* Rarity banner */}
               <div 
@@ -465,46 +460,25 @@ const EncounterScreen: React.FC = () => {
                 </div>
               </div>
               
-              {/* Staggered CTAs */}
+              {/* CTAs */}
               <div className={styles.cardActions}>
-                <AnimatePresence>
-                  {ctaVisible.collect && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        fullWidth
-                        onClick={handleCollect}
-                        isLoading={isCollecting}
-                      >
-                        Welcome Home! 🏠
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                
-                <AnimatePresence>
-                  {ctaVisible.skip && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleSkip}
-                        disabled={isCollecting}
-                      >
-                        Keep Walking
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  onClick={handleCollect}
+                  isLoading={isCollecting}
+                >
+                  Welcome Home! 🏠
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSkip}
+                  disabled={isCollecting}
+                >
+                  Keep Walking
+                </Button>
               </div>
             </motion.div>
           </motion.div>
@@ -530,24 +504,17 @@ const EncounterScreen: React.FC = () => {
 };
 
 // Restrained particles - 8-14 petals + few sparkles (NOT explosion)
-const RarityParticles: React.FC<{ rarity: Rarity; config: RarityConfig }> = ({ config }) => {
+const RarityParticles: React.FC<{ config: RarityConfig }> = ({ config }) => {
   const petalCount = Math.min(14, 8 + Math.floor(config.particleCount / 4));
   const sparkleCount = Math.min(6, Math.floor(config.particleCount / 6));
   
   return (
     <div className={styles.particleContainer}>
-      {/* Petals */}
       {[...Array(petalCount)].map((_, i) => (
         <motion.div
           key={`petal-${i}`}
           className={styles.petal}
-          initial={{ 
-            opacity: 0,
-            scale: 0,
-            x: 0,
-            y: 0,
-            rotate: 0,
-          }}
+          initial={{ opacity: 0, scale: 0, x: 0, y: 0, rotate: 0 }}
           animate={{
             opacity: [0, 0.8, 0],
             scale: [0, 1, 0.5],
@@ -555,17 +522,12 @@ const RarityParticles: React.FC<{ rarity: Rarity; config: RarityConfig }> = ({ c
             y: Math.sin((i / petalCount) * Math.PI * 2) * (80 + Math.random() * 40) + 20,
             rotate: Math.random() * 360,
           }}
-          transition={{
-            duration: 1.8,
-            delay: i * 0.03,
-            ease: 'easeOut',
-          }}
+          transition={{ duration: 1.8, delay: i * 0.03, ease: 'easeOut' }}
         >
           <PetalSVG color={i % 2 === 0 ? config.color : config.colorLight} />
         </motion.div>
       ))}
       
-      {/* Sparkles */}
       {[...Array(sparkleCount)].map((_, i) => (
         <motion.div
           key={`sparkle-${i}`}
@@ -577,10 +539,7 @@ const RarityParticles: React.FC<{ rarity: Rarity; config: RarityConfig }> = ({ c
             x: (Math.random() - 0.5) * 150,
             y: (Math.random() - 0.5) * 150,
           }}
-          transition={{
-            duration: 1.2,
-            delay: 0.2 + i * 0.1,
-          }}
+          transition={{ duration: 1.2, delay: 0.2 + i * 0.1 }}
         >
           ✨
         </motion.div>
@@ -599,58 +558,21 @@ interface RarityConfig {
 
 function getRarityConfig(rarity: Rarity): RarityConfig {
   const configs: Record<Rarity, RarityConfig> = {
-    common: {
-      color: '#8B9A6B',
-      colorLight: '#B8C99A',
-      colorDark: '#6B7A4B',
-      particleCount: 8,
-    },
-    uncommon: {
-      color: '#6B8E8E',
-      colorLight: '#9AC0C0',
-      colorDark: '#4B6E6E',
-      particleCount: 12,
-    },
-    rare: {
-      color: '#9B8EC2',
-      colorLight: '#C5B8E8',
-      colorDark: '#7B6EA2',
-      particleCount: 18,
-    },
-    epic: {
-      color: '#D4A5C9',
-      colorLight: '#F0D0E8',
-      colorDark: '#B485A9',
-      particleCount: 24,
-    },
-    legendary: {
-      color: '#E8C87D',
-      colorLight: '#FFE8B8',
-      colorDark: '#C8A85D',
-      particleCount: 32,
-    },
+    common: { color: '#8B9A6B', colorLight: '#B8C99A', colorDark: '#6B7A4B', particleCount: 8 },
+    uncommon: { color: '#6B8E8E', colorLight: '#9AC0C0', colorDark: '#4B6E6E', particleCount: 12 },
+    rare: { color: '#9B8EC2', colorLight: '#C5B8E8', colorDark: '#7B6EA2', particleCount: 18 },
+    epic: { color: '#D4A5C9', colorLight: '#F0D0E8', colorDark: '#B485A9', particleCount: 24 },
+    legendary: { color: '#E8C87D', colorLight: '#FFE8B8', colorDark: '#C8A85D', particleCount: 32 },
   };
   return configs[rarity];
 }
 
 function getRarityLabel(rarity: Rarity): string {
-  return {
-    common: 'Everyday',
-    uncommon: 'Unusual',
-    rare: 'Special',
-    epic: 'Dream',
-    legendary: 'Legendary',
-  }[rarity];
+  return { common: 'Everyday', uncommon: 'Unusual', rare: 'Special', epic: 'Dream', legendary: 'Legendary' }[rarity];
 }
 
 function getRarityStars(rarity: Rarity): string {
-  return {
-    common: '🌱',
-    uncommon: '🌸',
-    rare: '✨',
-    epic: '🌙',
-    legendary: '⭐',
-  }[rarity];
+  return { common: '🌱', uncommon: '🌸', rare: '✨', epic: '🌙', legendary: '⭐' }[rarity];
 }
 
 function getPersonalityLine(personality: string, petName: string): string {
@@ -674,13 +596,7 @@ function capitalizeFirst(str: string): string {
 }
 
 function getEnvSkyColor(env: string): string {
-  const colors: Record<string, string> = {
-    park: '#B8D4E8',
-    city: '#C5D5E8',
-    riverside: '#A8C8E8',
-    beach: '#F5D4C5',
-  };
-  return colors[env] || colors.park;
+  return { park: '#B8D4E8', city: '#C5D5E8', riverside: '#A8C8E8', beach: '#F5D4C5' }[env] || '#B8D4E8';
 }
 
 // SVG Components

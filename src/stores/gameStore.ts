@@ -246,11 +246,20 @@ export const useGameStore = create<GameState>()(
           isStarter: false
         };
         
+        // 1. Add pet to database
         await addPet(newPet);
+        console.log('[PawBloom] Added new pet to DB:', newPet.instanceId);
         
-        // Update stats
+        // 2. Auto-slot to team if team < 3
+        const newTeamPetIds = [...player.teamPetIds];
+        if (newTeamPetIds.length < 3) {
+          newTeamPetIds.push(newPet.instanceId);
+          console.log('[PawBloom] Auto-slotted to team. New team size:', newTeamPetIds.length);
+        }
+        
+        // 3. Update player with stats AND teamPetIds
         await updatePlayer({
-          ...player,
+          teamPetIds: newTeamPetIds,
           stats: {
             ...player.stats,
             totalPetsCollected: player.stats.totalPetsCollected + 1,
@@ -258,12 +267,22 @@ export const useGameStore = create<GameState>()(
           }
         });
         
+        // 4. Read back from DB to ensure persistence
         const updatedPets = await getAllPets();
         const updatedPlayer = await db.player.get('main');
         
+        // 5. Build updated team from DB
+        const updatedTeam = updatedPets.filter(p => 
+          updatedPlayer?.teamPetIds.includes(p.instanceId)
+        );
+        
+        console.log('[PawBloom] Collection complete. Owned:', updatedPets.length, 'Team:', updatedTeam.length);
+        
+        // 6. Update state with ALL changes
         set({
           pendingEncounter: null,
           ownedPets: updatedPets,
+          teamPets: updatedTeam,
           player: updatedPlayer || null
         });
         
