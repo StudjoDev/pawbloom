@@ -114,32 +114,35 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
     }
   };
 
-  // Subtle CSS animation for idle breathing (on top of transparent PNG)
+  // OBVIOUS idle animation - must be visible in 2-3 second recording
   const getIdleAnimation = () => {
     if (currentPose === 'idle') {
+      // Large, obvious breathing motion: bob up/down + squash/stretch + sway
       return {
-        y: [0, -6, 0],
-        scaleY: [1, 1.02, 1],
-        rotate: [-1, 1, -1],
+        y: [0, -12, 0, -8, 0],           // Strong vertical bob (±12px)
+        scaleY: [1, 1.06, 1, 1.04, 1],   // Noticeable breathing (6% stretch)
+        scaleX: [1, 0.97, 1, 0.98, 1],   // Squash effect
+        rotate: [-2, 2, -1.5, 1.5, 0],   // Gentle sway (±2°)
       };
     }
     if (currentPose === 'happy') {
       return {
-        y: [0, -20, 0],
-        rotate: [-5, 5, -5],
-        scale: [1, 1.1, 1],
+        y: [0, -25, 0],
+        rotate: [-8, 8, -8],
+        scale: [1, 1.12, 1],
       };
     }
     if (currentPose === 'surprised') {
       return {
-        scale: [1, 1.15, 1.1],
-        x: [0, -3, 3, 0],
+        scale: [1, 1.18, 1.12],
+        x: [0, -5, 5, 0],
       };
     }
     if (currentPose === 'sleepy') {
       return {
-        y: [0, 3, 0],
-        rotate: [0, 5, 0],
+        y: [0, 5, 0],
+        rotate: [0, 8, 0],
+        opacity: [1, 0.85, 1],
       };
     }
     return {};
@@ -147,13 +150,14 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
 
   const getTransition = () => {
     if (currentPose === 'idle') {
-      return { duration: 2, repeat: Infinity, ease: 'easeInOut' };
+      // Faster cycle so animation is obvious within 2-3 seconds
+      return { duration: 1.8, repeat: Infinity, ease: 'easeInOut' };
     }
     if (currentPose === 'happy') {
-      return { duration: 0.4, repeat: 2, ease: 'easeOut' };
+      return { duration: 0.5, repeat: 2, ease: 'easeOut' };
     }
     if (currentPose === 'surprised') {
-      return { duration: 0.3, ease: 'easeOut' };
+      return { duration: 0.35, ease: 'easeOut' };
     }
     if (currentPose === 'sleepy') {
       return { duration: 3, repeat: Infinity, ease: 'easeInOut' };
@@ -193,7 +197,7 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
         />
       )}
 
-      {/* Ground shadow */}
+      {/* Ground shadow - synced with pet breathing animation */}
       {currentPose !== 'silhouette' && (
         <motion.div
           style={{
@@ -208,11 +212,19 @@ export const PetSprite: React.FC<PetSpriteProps> = ({
             zIndex: 0,
           }}
           animate={{
-            scaleX: currentPose === 'walk' ? [1, 0.8, 1] : [1, 1.1, 1],
-            opacity: currentPose === 'walk' ? [0.3, 0.2, 0.3] : [0.3, 0.25, 0.3],
+            scaleX: currentPose === 'walk' 
+              ? [1, 0.8, 1] 
+              : currentPose === 'idle'
+              ? [1, 1.15, 1, 1.1, 1]  // Synced with idle breathing
+              : [1, 1.1, 1],
+            opacity: currentPose === 'walk' 
+              ? [0.3, 0.2, 0.3] 
+              : currentPose === 'idle'
+              ? [0.3, 0.2, 0.3, 0.22, 0.3]  // Pulsing shadow
+              : [0.3, 0.25, 0.3],
           }}
           transition={{
-            duration: currentPose === 'walk' ? 0.25 : 2,
+            duration: currentPose === 'walk' ? 0.25 : currentPose === 'idle' ? 1.8 : 2,
             repeat: Infinity,
             ease: 'easeInOut',
           }}
