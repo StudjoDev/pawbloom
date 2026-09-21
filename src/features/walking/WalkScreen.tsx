@@ -62,11 +62,18 @@ const WalkScreen: React.FC = () => {
   // Auto-walk simulation with approach tension
   useEffect(() => {
     if (isWalking) {
+      let stepCount = 0;
       walkInterval.current = setInterval(() => {
         addSteps(1);
         setScrollOffset(prev => prev + 2);
         encounterCheckRef.current += 1;
         setEncounterProgress(prev => Math.min(prev + 1, nextEncounterAt));
+        stepCount++;
+        
+        // Play footstep every 5 steps for rhythm
+        if (stepCount % 5 === 0) {
+          audioManager.playSFX('footstep');
+        }
         
         const stepsRemaining = nextEncounterAt - encounterCheckRef.current;
         
@@ -79,7 +86,7 @@ const WalkScreen: React.FC = () => {
         }
         if (stepsRemaining === 8) {
           setShowFootprints(true);
-          audioManager.playSFX('footstep');
+          audioManager.playSFX('paw');
           hapticsManager.play('light');
         }
         if (stepsRemaining === 5) {
