@@ -86,16 +86,17 @@ export const useGameStore = create<GameState>()(
         });
       },
       
-      // Complete onboarding with starter pet
+      // Complete onboarding with starter pet + 2 bonus pets for Vertical Slice demo
       completeOnboarding: async (starterPetId: string, nickname: string) => {
         const personalities: Personality[] = ['playful', 'curious', 'shy', 'foodie', 'brave'];
-        const randomPersonality = personalities[Math.floor(Math.random() * personalities.length)];
+        const getRandomPersonality = () => personalities[Math.floor(Math.random() * personalities.length)];
         
+        // Main starter pet (user's choice)
         const starterPet: PetInstance = {
           instanceId: uuidv4(),
           petId: starterPetId,
           nickname: nickname || undefined,
-          personality: randomPersonality,
+          personality: getRandomPersonality(),
           rarity: 'common',
           bondLevel: 1,
           bondXp: 0,
@@ -112,17 +113,72 @@ export const useGameStore = create<GameState>()(
           isStarter: true
         };
         
+        // Vertical Slice: Add 2 bonus starter pets to show full team of 3
+        // Pick from other starters not chosen by user
+        const allStarters = ['shiba-inu', 'corgi', 'orange-tabby'];
+        const bonusStarters = allStarters.filter(id => id !== starterPetId).slice(0, 2);
+        const bonusNames = ['Mochi', 'Biscuit', 'Pudding', 'Cookie'];
+        
+        const bonusPet1: PetInstance = {
+          instanceId: uuidv4(),
+          petId: bonusStarters[0],
+          nickname: bonusNames[Math.floor(Math.random() * bonusNames.length)],
+          personality: getRandomPersonality(),
+          rarity: 'common',
+          bondLevel: 1,
+          bondXp: 0,
+          totalStepsTogether: 0,
+          equippedDecor: [],
+          memories: [{
+            id: uuidv4(),
+            type: 'discovery',
+            title: 'Bonus Friend!',
+            description: 'A gift for joining our adventure!',
+            timestamp: Date.now() - 1000
+          }],
+          discoveredAt: Date.now() - 1000,
+          isStarter: true
+        };
+        
+        const bonusPet2: PetInstance = {
+          instanceId: uuidv4(),
+          petId: bonusStarters[1],
+          nickname: bonusNames[Math.floor(Math.random() * bonusNames.length)],
+          personality: getRandomPersonality(),
+          rarity: 'uncommon', // Make one slightly special
+          bondLevel: 1,
+          bondXp: 0,
+          totalStepsTogether: 0,
+          equippedDecor: [],
+          memories: [{
+            id: uuidv4(),
+            type: 'discovery',
+            title: 'Bonus Friend!',
+            description: 'A gift for joining our adventure!',
+            timestamp: Date.now() - 2000
+          }],
+          discoveredAt: Date.now() - 2000,
+          isStarter: true
+        };
+        
+        // Add all 3 pets
         await addPet(starterPet);
-        await updatePlayer({ teamPetIds: [starterPet.instanceId] });
+        await addPet(bonusPet1);
+        await addPet(bonusPet2);
+        
+        // Set all 3 as team
+        const teamIds = [starterPet.instanceId, bonusPet1.instanceId, bonusPet2.instanceId];
+        await updatePlayer({ teamPetIds: teamIds });
         
         const player = await initializePlayer();
         const pets = await getAllPets();
+        const teamPets = [starterPet, bonusPet1, bonusPet2];
         
         set({
           hasCompletedOnboarding: true,
           player,
           ownedPets: pets,
-          teamPets: [starterPet],
+          teamPets,
           selectedStarterId: null,
           starterNickname: ''
         });
