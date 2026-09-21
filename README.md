@@ -8,7 +8,9 @@
 
 ## 🎮 Playable Demo
 
-**[Play PawBloom Now →](https://pawbloom.vercel.app)**
+**🔗 Live URL:** [https://studjodev.github.io/pawbloom/](https://studjodev.github.io/pawbloom/)
+
+> **Setup Required:** Enable GitHub Pages in repo Settings → Pages → Source: "Deploy from branch" → Branch: `gh-pages` → Save
 
 A Japanese kawaii-style mobile game where your daily walks lead to adorable encounters with cats and dogs. Each step brings you closer to discovering new furry friends!
 
