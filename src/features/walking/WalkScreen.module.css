@@ -1,4 +1,4 @@
-/* Walk Screen Styles */
+/* PawBloom Walk Screen - P0-1 Approach Tension */
 
 .container {
   min-height: 100vh;
@@ -7,117 +7,116 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  background: var(--color-sky-light);
+  background: var(--color-background);
 }
 
+/* Parallax background */
 .parallaxContainer {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
 }
 
 .parallax {
-  width: 100%;
-  height: 100%;
-  position: relative;
+  position: absolute;
+  inset: 0;
 }
 
 .layer {
   position: absolute;
-  width: 300%;
-  height: 100%;
+  inset: 0;
   will-change: transform;
 }
 
-.skyLayer {
+.skyLayer,
+.farLayer,
+.midLayer,
+.groundLayer,
+.foregroundLayer {
   position: absolute;
-  top: 0;
+  width: 200%;
+  height: 100%;
   left: 0;
-  width: 100%;
+}
+
+.skyLayer {
+  top: 0;
   height: 40%;
 }
 
 .farLayer {
-  position: absolute;
-  bottom: 35%;
-  left: 0;
-  width: 100%;
-  height: 25%;
+  top: 25%;
+  height: 30%;
 }
 
 .midLayer {
-  position: absolute;
-  bottom: 20%;
-  left: 0;
-  width: 100%;
-  height: 35%;
+  top: 35%;
+  height: 40%;
 }
 
 .groundLayer {
-  position: absolute;
   bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 25%;
+  height: 35%;
 }
 
 .foregroundLayer {
-  position: absolute;
   bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 15%;
+  height: 20%;
 }
 
+/* Header */
 .header {
   position: relative;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-md);
-  padding-top: calc(var(--safe-top) + var(--space-md));
+  padding: calc(var(--space-md) + var(--safe-top, 0px)) var(--space-md) var(--space-sm);
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, transparent 100%);
 }
 
 .backButton {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.9);
-  border: 2px solid var(--color-secondary-dark);
+  background: var(--color-surface);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  color: var(--color-text);
 }
 
 .envLabel {
-  background: rgba(255, 255, 255, 0.9);
-  padding: 6px 16px;
+  background: var(--color-surface);
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-full);
-  border: 2px solid var(--color-secondary-dark);
+  box-shadow: var(--shadow-sm);
 }
 
 .envName {
+  font-family: var(--font-display);
   font-size: var(--text-caption);
   font-weight: 600;
-  color: var(--color-primary-dark);
+  color: var(--color-text);
 }
 
 .stepCounter {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 8px 16px;
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--color-secondary-dark);
+  align-items: flex-end;
+  background: var(--color-surface);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .stepValue {
+  font-family: var(--font-display);
   font-size: var(--text-subheading);
-  font-weight: 700;
+  font-weight: 800;
   color: var(--color-primary);
   line-height: 1;
 }
@@ -127,81 +126,133 @@
   color: var(--color-text-muted);
 }
 
+/* Walk area */
 .walkArea {
-  flex: 1;
   position: relative;
   z-index: 5;
+  flex: 1;
   display: flex;
   align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 25%;
+  padding-bottom: 30%;
 }
 
 .petsWalking {
   position: relative;
   width: 100%;
-  height: 120px;
+  height: 150px;
 }
 
 .walkingPet {
   position: absolute;
   bottom: 0;
-  transform: translateX(-50%);
 }
 
-.encounterHint {
+/* Approach hints */
+.rustleEffect {
   position: absolute;
   top: 30%;
-  right: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.footprintHint {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: var(--space-sm);
+  font-size: 24px;
 }
 
-.hintText {
-  background: rgba(255, 255, 255, 0.95);
-  padding: 8px 16px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-caption);
-  font-weight: 600;
-  color: var(--color-accent-dark);
-  border: 2px solid var(--color-accent);
-}
-
-.pawPrints {
-  font-size: 32px;
-}
-
+/* Controls */
 .controls {
   position: relative;
   z-index: 10;
-  padding: var(--space-md);
-  padding-bottom: calc(var(--safe-bottom) + var(--space-md));
+  padding: 0 var(--space-md) calc(var(--space-lg) + var(--safe-bottom, 0px));
 }
 
-.progressSection {
+/* Mystery section - approach tension */
+.mysterySection {
   margin-bottom: var(--space-md);
 }
 
-.progressLabel {
+.mysteryHeader {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-caption);
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: var(--space-xs);
-}
-
-.walkControl {
+  gap: var(--space-sm);
   margin-bottom: var(--space-sm);
 }
 
+.mysteryIcon {
+  font-size: 20px;
+}
+
+.mysteryLabel {
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.mysteryDistance {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Progress track */
+.progressTrack {
+  position: relative;
+  height: 10px;
+  background: var(--color-secondary);
+  border-radius: 5px;
+  overflow: visible;
+}
+
+.progressFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.progressPaw {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  transition: left 0.3s ease;
+}
+
+/* Walk control */
+.walkControl {
+  margin-top: var(--space-sm);
+}
+
+/* Dev controls */
 .devControls {
   display: flex;
   gap: var(--space-sm);
-  justify-content: center;
+  margin-top: var(--space-sm);
   padding-top: var(--space-sm);
-  border-top: 1px solid var(--color-secondary-dark);
+  border-top: 1px dashed var(--color-secondary);
+}
+
+.devControls button {
+  flex: 1;
 }

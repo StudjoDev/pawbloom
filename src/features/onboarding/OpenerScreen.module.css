@@ -1,0 +1,147 @@
+/* PawBloom Opener Screen - P0-1 First 5 Minutes */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #B8D4E8 0%,
+    #D4E8F5 40%,
+    #F5E6D3 70%,
+    #FDF8F3 100%
+  );
+}
+
+/* Bottom scene with grass and bush */
+.bottomScene {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  z-index: 2;
+}
+
+.grassSvg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Peeking pet position */
+.peekingPet {
+  position: absolute;
+  bottom: 55%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+/* Text content */
+.content {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-xl);
+  padding-bottom: 40%;
+}
+
+.textSection {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.tagline {
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-lg);
+  font-style: italic;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.logoIcon {
+  font-size: 36px;
+}
+
+.logoText {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  letter-spacing: -1px;
+}
+
+/* CTA Section */
+.ctaSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.startButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(140, 179, 105, 0.4);
+  transition: all var(--transition-fast);
+}
+
+.startButton:active {
+  transform: scale(0.98);
+}
+
+.arrow {
+  font-size: 20px;
+  transition: transform var(--transition-fast);
+}
+
+.startButton:hover .arrow {
+  transform: translateX(4px);
+}
+
+.subtitle {
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+  margin: 0;
+}

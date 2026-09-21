@@ -1,287 +1,421 @@
-// PawBloom Encounter Screen - Full reveal sequence for new pets
+// PawBloom Encounter Screen - P0-2 Cinematic Reveal
+// EXACT beat sheet from Production Spec:
+// dim→bush shake→pause→shake→BREATHING silhouette→TAP→squash×3→freeze+spark→flash→crossfade→blink/tilt/wag→1.5s NO UI→stagger CTAs
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
-import { getPetById, RARITY_COLORS, type Rarity } from '@/data/pets';
+import { getPetById, type Rarity } from '@/data/pets';
 import { PetRenderer } from '@/components/pets/PetRenderer';
+import { audioManager } from '@/services/audio/AudioManager';
+import { hapticsManager } from '@/services/audio/HapticsManager';
 import Button from '@/components/ui/Button';
+import ShareCard from '@/components/ui/ShareCard';
 import styles from './EncounterScreen.module.css';
 
 type EncounterPhase = 
-  | 'footprints' 
-  | 'notice' 
-  | 'bush' 
-  | 'silhouette' 
-  | 'tap' 
-  | 'reveal' 
-  | 'reaction' 
-  | 'card';
+  | 'approach'      // Pre-encounter countdown
+  | 'dim'           // Background dims -15%
+  | 'bush_shake_1'  // First bush shake
+  | 'pause'         // Suspenseful pause
+  | 'bush_shake_2'  // Second bush shake
+  | 'silhouette'    // BREATHING silhouette (not static!)
+  | 'wait_tap'      // Wait for player tap
+  | 'squash_pulse'  // 3× squash pulse
+  | 'freeze_spark'  // 200ms freeze + spark SFX
+  | 'flash'         // Radial flash 300ms
+  | 'crossfade'     // Pet crossfade in
+  | 'landing'       // Blink → head tilt → tail wag
+  | 'heart_pause'   // 1-1.5s NO UI, only pet + ❤️
+  | 'show_ui';      // Stagger CTAs
 
 const EncounterScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { pendingEncounter, collectPet, clearEncounter, currentEnvironment } = useGameStore();
-  const [phase, setPhase] = useState<EncounterPhase>('footprints');
+  const { pendingEncounter, collectPet, clearEncounter, currentEnvironment, player } = useGameStore();
+  
+  const [phase, setPhase] = useState<EncounterPhase>('dim');
   const [nickname, setNickname] = useState('');
   const [isCollecting, setIsCollecting] = useState(false);
+  const [showFlash, setShowFlash] = useState(false);
+  const [showHeart, setShowHeart] = useState(false);
+  const [ctaVisible, setCtaVisible] = useState({ bond: false, collect: false, skip: false });
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [collectedPetData, setCollectedPetData] = useState<{
+    petId: string;
+    petName: string;
+    nickname?: string;
+    personality: string;
+    rarity: Rarity;
+    steps: number;
+    discoveredAt: number;
+  } | null>(null);
+  
+  const silhouetteControls = useAnimation();
+  const petControls = useAnimation();
+  const tapAreaRef = useRef<HTMLDivElement>(null);
   
   const pet = pendingEncounter ? getPetById(pendingEncounter.petId) : null;
   const rarity = pendingEncounter?.rarity || 'common';
   const personality = pendingEncounter?.personality || 'playful';
   
-  // Auto-advance through initial phases
+  const rarityConfig = useMemo(() => getRarityConfig(rarity), [rarity]);
+  const isFirstOfKind = useMemo(() => {
+    if (!pendingEncounter || !player) return true;
+    // Check if this is first time encountering this pet type
+    return true; // For now, always show "New" ribbon
+  }, [pendingEncounter, player]);
+
+  // Phase progression - EXACT beat sheet
   useEffect(() => {
     if (!pendingEncounter) {
       navigate('/walk', { replace: true });
       return;
     }
+
+    // Duck BGM for tension
+    audioManager.duckBGM(3000);
     
     const timers: NodeJS.Timeout[] = [];
     
-    // Phase progression
-    timers.push(setTimeout(() => setPhase('notice'), 1200));
-    timers.push(setTimeout(() => setPhase('bush'), 2200));
-    timers.push(setTimeout(() => setPhase('silhouette'), 3200));
-    timers.push(setTimeout(() => setPhase('tap'), 4200));
+    // Phase: dim (background dims -15%)
+    // Already in dim phase
+    
+    // Phase: bush_shake_1 (first shake)
+    timers.push(setTimeout(() => {
+      setPhase('bush_shake_1');
+      audioManager.playSFX('rustle');
+      hapticsManager.play('light');
+    }, 500));
+    
+    // Phase: pause (suspenseful pause)
+    timers.push(setTimeout(() => {
+      setPhase('pause');
+    }, 1100));
+    
+    // Phase: bush_shake_2 (second shake)
+    timers.push(setTimeout(() => {
+      setPhase('bush_shake_2');
+      audioManager.playSFX('encounter_rumble');
+      hapticsManager.play('medium');
+    }, 1600));
+    
+    // Phase: silhouette (BREATHING silhouette appears)
+    timers.push(setTimeout(() => {
+      setPhase('silhouette');
+      audioManager.playSFX('silhouette');
+      // Start breathing animation
+      silhouetteControls.start({
+        scale: [1, 1.03, 1],
+        y: [0, -3, 0],
+        transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
+      });
+    }, 2200));
+    
+    // Phase: wait_tap (prompt player)
+    timers.push(setTimeout(() => {
+      setPhase('wait_tap');
+    }, 3000));
     
     return () => timers.forEach(clearTimeout);
-  }, [pendingEncounter, navigate]);
-  
-  const handleTap = useCallback(() => {
-    if (phase === 'tap' || phase === 'silhouette') {
-      setPhase('reveal');
-      
-      // Haptic feedback
-      if (navigator.vibrate) {
-        navigator.vibrate([50, 30, 100]);
-      }
-      
-      setTimeout(() => setPhase('reaction'), 1500);
-      setTimeout(() => setPhase('card'), 3000);
+  }, [pendingEncounter, navigate, silhouetteControls]);
+
+  // Handle player TAP to reveal
+  const handleTapReveal = useCallback(async () => {
+    if (phase !== 'wait_tap' && phase !== 'silhouette') return;
+    
+    audioManager.playSFX('tap');
+    hapticsManager.play('tap');
+    
+    // Phase: squash_pulse (3× squash)
+    setPhase('squash_pulse');
+    silhouetteControls.stop();
+    
+    for (let i = 0; i < 3; i++) {
+      await silhouetteControls.start({
+        scaleX: [1, 1.15, 0.9, 1],
+        scaleY: [1, 0.85, 1.1, 1],
+        transition: { duration: 0.15, ease: 'easeOut' }
+      });
     }
-  }, [phase]);
+    
+    // Phase: freeze_spark (200ms freeze + spark)
+    setPhase('freeze_spark');
+    audioManager.playSFX('reveal_whoosh');
+    hapticsManager.play('reveal');
+    
+    await new Promise(r => setTimeout(r, 200));
+    
+    // Phase: flash (radial flash 300ms)
+    setPhase('flash');
+    setShowFlash(true);
+    audioManager.playSFX('sparkle');
+    
+    // Play rarity-specific sting
+    const raritySfx = `rarity_${rarity}` as const;
+    audioManager.playSFX(raritySfx);
+    hapticsManager.rarityFeedback(rarity);
+    
+    await new Promise(r => setTimeout(r, 300));
+    setShowFlash(false);
+    
+    // Phase: crossfade (pet appears)
+    setPhase('crossfade');
+    
+    await new Promise(r => setTimeout(r, 400));
+    
+    // Phase: landing (blink → tilt → wag)
+    setPhase('landing');
+    await petControls.start({
+      scale: [0.8, 1.1, 1],
+      y: [20, -10, 0],
+      rotate: [0, -5, 5, 0],
+      transition: { duration: 0.6, ease: 'easeOut' }
+    });
+    
+    // Show heart
+    setShowHeart(true);
+    audioManager.playSFX('bond_up');
+    
+    // Phase: heart_pause (1.5s NO UI, only pet + ❤️)
+    setPhase('heart_pause');
+    
+    await new Promise(r => setTimeout(r, 1500));
+    
+    // Phase: show_ui (stagger CTAs)
+    setPhase('show_ui');
+    
+    // Stagger CTA appearance (50ms apart per spec)
+    setTimeout(() => setCtaVisible(v => ({ ...v, bond: true })), 0);
+    setTimeout(() => setCtaVisible(v => ({ ...v, collect: true })), 50);
+    setTimeout(() => setCtaVisible(v => ({ ...v, skip: true })), 100);
+    
+    // Resume BGM
+    audioManager.playBGM('home');
+    
+  }, [phase, rarity, silhouetteControls, petControls]);
   
   const handleCollect = async () => {
-    if (isCollecting) return;
+    if (isCollecting || !pet || !pendingEncounter) return;
     
     setIsCollecting(true);
+    audioManager.playSFX('collect');
+    hapticsManager.play('success');
+    
     try {
+      // Save data for share card before collecting
+      setCollectedPetData({
+        petId: pendingEncounter.petId,
+        petName: pet.name,
+        nickname: nickname.trim() || undefined,
+        personality,
+        rarity,
+        steps: useGameStore.getState().currentSteps,
+        discoveredAt: Date.now(),
+      });
+      
       await collectPet(nickname.trim() || undefined);
-      navigate('/home', { replace: true });
+      
+      // Show share card for NEW pets (P0-5)
+      setShowShareCard(true);
     } catch (error) {
       console.error('Failed to collect pet:', error);
       setIsCollecting(false);
     }
   };
+
+  const handleShareCardClose = () => {
+    setShowShareCard(false);
+    navigate('/home', { replace: true });
+  };
   
   const handleSkip = () => {
+    audioManager.playSFX('ui_back');
     clearEncounter();
+    audioManager.playBGM('walk');
     navigate('/walk', { replace: true });
   };
   
   if (!pet || !pendingEncounter) return null;
   
-  const rarityColor = RARITY_COLORS[rarity];
-  const rarityLabel = getRarityLabel(rarity);
+  const isDimmed = phase !== 'approach';
+  const showBush = ['dim', 'bush_shake_1', 'pause', 'bush_shake_2'].includes(phase);
+  const isBushShaking = phase === 'bush_shake_1' || phase === 'bush_shake_2';
+  const showSilhouette = ['silhouette', 'wait_tap', 'squash_pulse', 'freeze_spark'].includes(phase);
+  const showPet = ['flash', 'crossfade', 'landing', 'heart_pause', 'show_ui'].includes(phase);
+  const showTapPrompt = phase === 'wait_tap';
+  const showCard = phase === 'show_ui';
   
   return (
     <div 
-      className={styles.container} 
-      onClick={handleTap}
-      style={{
-        background: `linear-gradient(180deg, ${getEnvSkyColor(currentEnvironment)} 0%, var(--color-background) 100%)`
-      }}
+      className={styles.container}
+      onClick={handleTapReveal}
+      ref={tapAreaRef}
     >
-      {/* Rarity glow effect */}
-      <motion.div
-        className={styles.rarityGlow}
-        initial={{ opacity: 0 }}
+      {/* Background with dim effect */}
+      <motion.div 
+        className={styles.background}
         animate={{ 
-          opacity: phase === 'reveal' || phase === 'reaction' || phase === 'card' ? 0.6 : 0 
+          filter: isDimmed ? 'brightness(0.85)' : 'brightness(1)',
         }}
+        transition={{ duration: 0.5 }}
         style={{
-          background: `radial-gradient(circle at 50% 40%, ${rarityColor}60 0%, transparent 60%)`
+          background: `linear-gradient(180deg, ${getEnvSkyColor(currentEnvironment)} 0%, var(--color-background) 100%)`
         }}
       />
       
-      {/* Sparkle effects */}
-      <AnimatePresence>
-        {(phase === 'reveal' || phase === 'reaction') && (
-          <div className={styles.sparklesContainer}>
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className={styles.sparkle}
-                initial={{ 
-                  opacity: 0, 
-                  scale: 0,
-                  x: 0,
-                  y: 0
-                }}
-                animate={{
-                  opacity: [0, 1, 0],
-                  scale: [0, 1.5, 0],
-                  x: Math.cos((i / 20) * Math.PI * 2) * (100 + Math.random() * 60),
-                  y: Math.sin((i / 20) * Math.PI * 2) * (100 + Math.random() * 60)
-                }}
-                transition={{
-                  duration: 1.5,
-                  delay: i * 0.03,
-                  ease: 'easeOut'
-                }}
-              >
-                <SparkleIcon color={rarityColor} size={12 + Math.random() * 12} />
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </AnimatePresence>
-      
-      {/* Phase: Footprints */}
-      <AnimatePresence>
-        {phase === 'footprints' && (
-          <motion.div
-            className={styles.footprints}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: [0, 1, 0.5], y: 0 }}
-                transition={{ delay: i * 0.3, duration: 0.5 }}
-                style={{ transform: `translateX(${i * 30 - 30}px) rotate(${i % 2 ? 15 : -15}deg)` }}
-              >
-                <PawPrintIcon />
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Phase: Team notices */}
-      <AnimatePresence>
-        {phase === 'notice' && (
-          <motion.div
-            className={styles.noticeText}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-          >
-            <span>Your pets noticed something!</span>
-            <motion.span
-              className={styles.questionMarks}
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
-            >
-              ❓
-            </motion.span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Phase: Bush rustling */}
-      <AnimatePresence>
-        {phase === 'bush' && (
-          <motion.div
-            className={styles.bushContainer}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+      {/* Camera zoom effect */}
+      <motion.div
+        className={styles.cameraContainer}
+        animate={{
+          scale: isDimmed ? 1.04 : 1,
+        }}
+        transition={{ duration: 1 }}
+      >
+        {/* Bush */}
+        <AnimatePresence>
+          {showBush && (
             <motion.div
-              animate={{ 
-                x: [-5, 5, -5],
-                rotate: [-2, 2, -2]
-              }}
-              transition={{ duration: 0.3, repeat: Infinity }}
+              className={styles.bushContainer}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 1.1 }}
             >
-              <BushIcon />
-            </motion.div>
-            <motion.p
-              className={styles.bushText}
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            >
-              *rustle rustle*
-            </motion.p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Phase: Silhouette & Tap */}
-      <AnimatePresence>
-        {(phase === 'silhouette' || phase === 'tap') && (
-          <motion.div
-            className={styles.silhouetteContainer}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.2 }}
-          >
-            <motion.div
-              animate={phase === 'tap' ? { 
-                scale: [1, 1.05, 1],
-              } : {}}
-              transition={{ duration: 0.8, repeat: Infinity }}
-            >
-              <PetRenderer
-                petId={pendingEncounter.petId}
-                size={180}
-                state="silhouette"
-              />
-            </motion.div>
-            
-            {phase === 'tap' && (
-              <motion.p
-                className={styles.tapHint}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1, repeat: Infinity }}
+              <motion.div
+                animate={isBushShaking ? {
+                  x: [-10, 10, -8, 8, -5, 5, 0],
+                  rotate: [-3, 3, -2, 2, -1, 1, 0],
+                } : {}}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
               >
-                Tap to reveal!
-              </motion.p>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Phase: Reveal & Reaction */}
-      <AnimatePresence>
-        {(phase === 'reveal' || phase === 'reaction') && (
-          <motion.div
-            className={styles.revealContainer}
-            initial={{ scale: 0.5, opacity: 0, rotateY: -180 }}
-            animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-          >
-            <PetRenderer
-              petId={pendingEncounter.petId}
-              size={200}
-              state={phase === 'reaction' ? 'happy' : 'surprised'}
-              showRarityGlow
-              rarity={rarity}
+                <BushSVG />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* BREATHING Silhouette (not static!) */}
+        <AnimatePresence>
+          {showSilhouette && (
+            <motion.div
+              className={styles.silhouetteContainer}
+              initial={{ opacity: 0, y: 40, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.2 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+            >
+              <motion.div animate={silhouetteControls}>
+                <PetRenderer
+                  petId={pendingEncounter.petId}
+                  size={200}
+                  state="silhouette"
+                />
+              </motion.div>
+              
+              {/* Tap prompt */}
+              <AnimatePresence>
+                {showTapPrompt && (
+                  <motion.div
+                    className={styles.tapPrompt}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: [0.6, 1, 0.6], y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ opacity: { duration: 1.2, repeat: Infinity } }}
+                  >
+                    <span className={styles.tapText}>Tap!</span>
+                    <motion.div
+                      className={styles.tapRing}
+                      animate={{ scale: [1, 1.4, 1], opacity: [0.8, 0, 0.8] }}
+                      transition={{ duration: 1.2, repeat: Infinity }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Radial flash */}
+        <AnimatePresence>
+          {showFlash && (
+            <motion.div
+              className={styles.radialFlash}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: [0, 1, 0], scale: [0, 2, 3] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ background: `radial-gradient(circle, ${rarityConfig.color}CC 0%, transparent 70%)` }}
             />
-            
-            {phase === 'reaction' && (
-              <motion.div
-                className={styles.reactionBubble}
-                initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <span>{getReactionText(personality)}</span>
+          )}
+        </AnimatePresence>
+        
+        {/* Revealed Pet with landing animation */}
+        <AnimatePresence>
+          {showPet && (
+            <motion.div
+              className={styles.petContainer}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <motion.div animate={petControls}>
+                <PetRenderer
+                  petId={pendingEncounter.petId}
+                  size={220}
+                  state={phase === 'heart_pause' || phase === 'show_ui' ? 'happy' : 'surprised'}
+                  showRarityGlow
+                  rarity={rarity}
+                />
               </motion.div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              
+              {/* Restrained particles - 8-14 petals + few sparkles */}
+              <RarityParticles rarity={rarity} config={rarityConfig} />
+              
+              {/* Heart ❤️ */}
+              <AnimatePresence>
+                {showHeart && (
+                  <motion.div
+                    className={styles.heartBurst}
+                    initial={{ opacity: 0, scale: 0, y: 0 }}
+                    animate={{ opacity: 1, scale: 1, y: -30 }}
+                    transition={{ type: 'spring', stiffness: 300 }}
+                  >
+                    ❤️
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              {/* Name bounce + New ribbon (only in show_ui phase) */}
+              <AnimatePresence>
+                {phase === 'show_ui' && (
+                  <motion.div
+                    className={styles.nameReveal}
+                    initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  >
+                    {isFirstOfKind && (
+                      <span className={styles.newRibbon}>NEW!</span>
+                    )}
+                    <span 
+                      className={styles.petNameBounce}
+                      style={{ color: rarityConfig.color }}
+                    >
+                      {pet.name}
+                    </span>
+                    <span className={styles.personalityText}>
+                      {getPersonalityLine(personality, pet.name)}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
       
-      {/* Phase: Collection Card */}
+      {/* Collection Card - only after heart_pause */}
       <AnimatePresence>
-        {phase === 'card' && (
+        {showCard && (
           <motion.div
             className={styles.cardOverlay}
             initial={{ opacity: 0 }}
@@ -290,26 +424,24 @@ const EncounterScreen: React.FC = () => {
           >
             <motion.div
               className={styles.collectionCard}
-              initial={{ y: 100, opacity: 0 }}
+              initial={{ y: 200, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 22 }}
             >
               {/* Rarity banner */}
               <div 
                 className={styles.rarityBanner}
-                style={{ background: `linear-gradient(135deg, ${rarityColor} 0%, ${rarityColor}CC 100%)` }}
+                style={{ background: `linear-gradient(135deg, ${rarityConfig.color} 0%, ${rarityConfig.colorDark} 100%)` }}
               >
-                <span className={styles.rarityStars}>
-                  {getRarityStars(rarity)}
-                </span>
-                <span className={styles.rarityText}>{rarityLabel}</span>
+                <span className={styles.rarityStars}>{getRarityStars(rarity)}</span>
+                <span className={styles.rarityLabel}>{getRarityLabel(rarity)}</span>
               </div>
               
               {/* Pet preview */}
               <div className={styles.cardPetPreview}>
                 <PetRenderer
                   petId={pendingEncounter.petId}
-                  size={120}
+                  size={110}
                   state="happy"
                   rarity={rarity}
                 />
@@ -318,26 +450,14 @@ const EncounterScreen: React.FC = () => {
               {/* Pet info */}
               <div className={styles.cardInfo}>
                 <h2 className={styles.cardPetName}>{pet.name}</h2>
-                <p className={styles.cardPetDesc}>{pet.description}</p>
-                
-                <div className={styles.cardTraits}>
-                  <div className={styles.trait}>
-                    <span className={styles.traitLabel}>Personality</span>
-                    <span className={styles.traitValue}>{capitalizeFirst(personality)}</span>
-                  </div>
-                  <div className={styles.trait}>
-                    <span className={styles.traitLabel}>Species</span>
-                    <span className={styles.traitValue}>{pet.species === 'dog' ? 'Dog' : 'Cat'}</span>
-                  </div>
-                </div>
+                <p className={styles.cardPersonality}>{capitalizeFirst(personality)}</p>
                 
                 {/* Nickname input */}
                 <div className={styles.nicknameSection}>
-                  <label className={styles.nicknameLabel}>Give a nickname (optional)</label>
                   <input
                     type="text"
                     className={styles.nicknameInput}
-                    placeholder={pet.name}
+                    placeholder="Give a nickname..."
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value.slice(0, 20))}
                     maxLength={20}
@@ -345,71 +465,208 @@ const EncounterScreen: React.FC = () => {
                 </div>
               </div>
               
-              {/* Actions */}
+              {/* Staggered CTAs */}
               <div className={styles.cardActions}>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  onClick={handleCollect}
-                  isLoading={isCollecting}
-                >
-                  Welcome to the Family!
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSkip}
-                  disabled={isCollecting}
-                >
-                  Continue Walking
-                </Button>
+                <AnimatePresence>
+                  {ctaVisible.collect && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                        onClick={handleCollect}
+                        isLoading={isCollecting}
+                      >
+                        Welcome Home! 🏠
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                <AnimatePresence>
+                  {ctaVisible.skip && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSkip}
+                        disabled={isCollecting}
+                      >
+                        Keep Walking
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* P0-5: Share Card for NEW PET */}
+      {collectedPetData && (
+        <ShareCard
+          isOpen={showShareCard}
+          onClose={handleShareCardClose}
+          petId={collectedPetData.petId}
+          petName={collectedPetData.petName}
+          nickname={collectedPetData.nickname}
+          personality={collectedPetData.personality}
+          rarity={collectedPetData.rarity}
+          steps={collectedPetData.steps}
+          discoveredAt={collectedPetData.discoveredAt}
+        />
+      )}
     </div>
   );
 };
 
-// Helper functions
-function getRarityLabel(rarity: Rarity): string {
-  const labels: Record<Rarity, string> = {
-    common: 'Common',
-    uncommon: 'Uncommon',
-    rare: 'Rare',
-    epic: 'Epic',
-    legendary: 'Legendary'
+// Restrained particles - 8-14 petals + few sparkles (NOT explosion)
+const RarityParticles: React.FC<{ rarity: Rarity; config: RarityConfig }> = ({ config }) => {
+  const petalCount = Math.min(14, 8 + Math.floor(config.particleCount / 4));
+  const sparkleCount = Math.min(6, Math.floor(config.particleCount / 6));
+  
+  return (
+    <div className={styles.particleContainer}>
+      {/* Petals */}
+      {[...Array(petalCount)].map((_, i) => (
+        <motion.div
+          key={`petal-${i}`}
+          className={styles.petal}
+          initial={{ 
+            opacity: 0,
+            scale: 0,
+            x: 0,
+            y: 0,
+            rotate: 0,
+          }}
+          animate={{
+            opacity: [0, 0.8, 0],
+            scale: [0, 1, 0.5],
+            x: Math.cos((i / petalCount) * Math.PI * 2) * (80 + Math.random() * 40),
+            y: Math.sin((i / petalCount) * Math.PI * 2) * (80 + Math.random() * 40) + 20,
+            rotate: Math.random() * 360,
+          }}
+          transition={{
+            duration: 1.8,
+            delay: i * 0.03,
+            ease: 'easeOut',
+          }}
+        >
+          <PetalSVG color={i % 2 === 0 ? config.color : config.colorLight} />
+        </motion.div>
+      ))}
+      
+      {/* Sparkles */}
+      {[...Array(sparkleCount)].map((_, i) => (
+        <motion.div
+          key={`sparkle-${i}`}
+          className={styles.sparkle}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{
+            opacity: [0, 1, 0],
+            scale: [0, 1.2, 0],
+            x: (Math.random() - 0.5) * 150,
+            y: (Math.random() - 0.5) * 150,
+          }}
+          transition={{
+            duration: 1.2,
+            delay: 0.2 + i * 0.1,
+          }}
+        >
+          ✨
+        </motion.div>
+      ))}
+    </div>
+  );
+};
+
+// Helper Types & Functions
+interface RarityConfig {
+  color: string;
+  colorLight: string;
+  colorDark: string;
+  particleCount: number;
+}
+
+function getRarityConfig(rarity: Rarity): RarityConfig {
+  const configs: Record<Rarity, RarityConfig> = {
+    common: {
+      color: '#8B9A6B',
+      colorLight: '#B8C99A',
+      colorDark: '#6B7A4B',
+      particleCount: 8,
+    },
+    uncommon: {
+      color: '#6B8E8E',
+      colorLight: '#9AC0C0',
+      colorDark: '#4B6E6E',
+      particleCount: 12,
+    },
+    rare: {
+      color: '#9B8EC2',
+      colorLight: '#C5B8E8',
+      colorDark: '#7B6EA2',
+      particleCount: 18,
+    },
+    epic: {
+      color: '#D4A5C9',
+      colorLight: '#F0D0E8',
+      colorDark: '#B485A9',
+      particleCount: 24,
+    },
+    legendary: {
+      color: '#E8C87D',
+      colorLight: '#FFE8B8',
+      colorDark: '#C8A85D',
+      particleCount: 32,
+    },
   };
-  return labels[rarity];
+  return configs[rarity];
+}
+
+function getRarityLabel(rarity: Rarity): string {
+  return {
+    common: 'Everyday',
+    uncommon: 'Unusual',
+    rare: 'Special',
+    epic: 'Dream',
+    legendary: 'Legendary',
+  }[rarity];
 }
 
 function getRarityStars(rarity: Rarity): string {
-  const stars: Record<Rarity, string> = {
-    common: '★',
-    uncommon: '★★',
-    rare: '★★★',
-    epic: '★★★★',
-    legendary: '★★★★★'
-  };
-  return stars[rarity];
+  return {
+    common: '🌱',
+    uncommon: '🌸',
+    rare: '✨',
+    epic: '🌙',
+    legendary: '⭐',
+  }[rarity];
 }
 
-function getReactionText(personality: string): string {
-  const reactions: Record<string, string> = {
-    shy: '*peeks nervously*',
-    playful: "Let's play!",
-    sleepy: '*yawn* ...hi...',
-    foodie: 'Got any treats?',
-    curious: 'Ooh, new friend!',
-    brave: "I'll protect you!",
-    clingy: "Don't leave me!",
-    tsundere: "I-it's not like I like you!",
-    explorer: 'Adventure time!',
-    mischievous: '*plotting something*'
+function getPersonalityLine(personality: string, petName: string): string {
+  const lines: Record<string, string> = {
+    shy: `${petName} found you... *peeks*`,
+    playful: `${petName} wants to play!`,
+    sleepy: `${petName} is a bit drowsy...`,
+    foodie: `${petName} smells treats nearby!`,
+    curious: `${petName} is curious about you!`,
+    brave: `${petName} is ready for adventure!`,
+    clingy: `${petName} doesn't want to leave!`,
+    tsundere: `${petName}... noticed you. Maybe.`,
+    explorer: `${petName} loves exploring!`,
+    mischievous: `${petName} is plotting something...`,
   };
-  return reactions[personality] || 'Nice to meet you!';
+  return lines[personality] || `${petName} wants to be friends!`;
 }
 
 function capitalizeFirst(str: string): string {
@@ -421,33 +678,26 @@ function getEnvSkyColor(env: string): string {
     park: '#B8D4E8',
     city: '#C5D5E8',
     riverside: '#A8C8E8',
-    beach: '#F5D4C5'
+    beach: '#F5D4C5',
   };
   return colors[env] || colors.park;
 }
 
-// Icon components
-const PawPrintIcon: React.FC = () => (
-  <svg viewBox="0 0 40 40" width="40" height="40" fill="var(--color-primary)" opacity="0.6">
-    <ellipse cx="20" cy="28" rx="10" ry="8" />
-    <ellipse cx="10" cy="16" rx="5" ry="6" />
-    <ellipse cx="20" cy="12" rx="5" ry="6" />
-    <ellipse cx="30" cy="16" rx="5" ry="6" />
+// SVG Components
+const BushSVG: React.FC = () => (
+  <svg viewBox="0 0 200 120" width="220" height="140">
+    <ellipse cx="100" cy="75" rx="80" ry="50" fill="#6B8F4E" />
+    <ellipse cx="60" cy="68" rx="55" ry="40" fill="#7CB369" />
+    <ellipse cx="140" cy="68" rx="55" ry="40" fill="#7CB369" />
+    <ellipse cx="100" cy="55" rx="60" ry="40" fill="#8CB369" />
+    <ellipse cx="70" cy="45" rx="35" ry="25" fill="#9BD07D" />
+    <ellipse cx="130" cy="48" rx="32" ry="23" fill="#9BD07D" />
   </svg>
 );
 
-const BushIcon: React.FC = () => (
-  <svg viewBox="0 0 120 80" width="150" height="100">
-    <ellipse cx="60" cy="50" rx="50" ry="30" fill="#7CB369" />
-    <ellipse cx="35" cy="45" rx="35" ry="25" fill="#8CB369" />
-    <ellipse cx="85" cy="45" rx="35" ry="25" fill="#8CB369" />
-    <ellipse cx="60" cy="35" rx="40" ry="25" fill="#6B8F4E" />
-  </svg>
-);
-
-const SparkleIcon: React.FC<{ color: string; size: number }> = ({ color, size }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} fill={color}>
-    <path d="M12 0L14 8L22 10L14 12L12 20L10 12L2 10L10 8Z" />
+const PetalSVG: React.FC<{ color: string }> = ({ color }) => (
+  <svg viewBox="0 0 20 20" width="16" height="16">
+    <ellipse cx="10" cy="10" rx="4" ry="8" fill={color} opacity="0.8" />
   </svg>
 );
 

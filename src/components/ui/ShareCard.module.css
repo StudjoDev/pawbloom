@@ -1,0 +1,171 @@
+/* PawBloom Share Card - P0-5 Viral Engine */
+/* Optimized for screenshot/share: ~70% pet, minimal text */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  z-index: var(--z-modal);
+}
+
+.card {
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(180deg, #FDF8F3 0%, #F5E6D3 100%);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.cardContent {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* Pet section - ~70% visual weight */
+.petSection {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-md) 0;
+}
+
+.petGlow {
+  border-radius: 50%;
+  padding: var(--space-sm);
+  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+}
+
+/* Info section - minimal */
+.infoSection {
+  text-align: center;
+  width: 100%;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.rarityEmoji {
+  font-size: 20px;
+}
+
+.petName {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.personality {
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-sm);
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statDivider {
+  opacity: 0.5;
+}
+
+/* Branding */
+.branding {
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  width: 100%;
+  text-align: center;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Hook */
+.hookSection {
+  width: 100%;
+  text-align: center;
+}
+
+.hookText {
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
+/* Actions */
+.actions {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-secondary);
+}
+
+.shareButton {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-primary);
+  color: white;
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.shareButton:hover {
+  background: var(--color-primary-dark);
+}
+
+.closeButton {
+  width: 100%;
+  padding: var(--space-xs) var(--space-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  color: var(--color-text);
+}

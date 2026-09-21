@@ -1,4 +1,6 @@
-// PawBloom Walk Screen - Side-scrolling parallax walking experience
+// PawBloom Walk Screen - P0-1 Scripted First Encounter + Approach Tension
+// First encounter: 60-100 steps (NOT 500+)
+// Approach tension: ???/progress/N steps away, rustle+footprints at 12/8/5/3, final ••• + BGM duck
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -7,9 +9,10 @@ import { useGameStore } from '@/stores/gameStore';
 import { getEnvironmentById, getEnvironmentForSteps, type EnvironmentDef } from '@/data/environments';
 import { PETS, RARITY_WEIGHTS, type Rarity, type Personality, PERSONALITIES } from '@/data/pets';
 import { PetRenderer } from '@/components/pets/PetRenderer';
+import { audioManager } from '@/services/audio/AudioManager';
+import { hapticsManager } from '@/services/audio/HapticsManager';
 import Button from '@/components/ui/Button';
 import Panel from '@/components/ui/Panel';
-import ProgressBar from '@/components/ui/ProgressBar';
 import styles from './WalkScreen.module.css';
 
 const WalkScreen: React.FC = () => {
@@ -24,28 +27,39 @@ const WalkScreen: React.FC = () => {
     endWalk,
     setEnvironment,
     triggerEncounter,
-    devMode
+    devMode,
+    player
   } = useGameStore();
   
   const [isWalking, setIsWalking] = useState(false);
   const [scrollOffset, setScrollOffset] = useState(0);
-  const [showEncounterHint, setShowEncounterHint] = useState(false);
   const [encounterProgress, setEncounterProgress] = useState(0);
   const [nextEncounterAt, setNextEncounterAt] = useState(0);
+  const [showRustle, setShowRustle] = useState(false);
+  const [showFootprints, setShowFootprints] = useState(false);
   
   const walkInterval = useRef<NodeJS.Timeout | null>(null);
   const encounterCheckRef = useRef<number>(0);
+  const isFirstEncounter = useRef(player?.stats.totalEncounters === 0);
   
   const environment = getEnvironmentById(currentEnvironment) || getEnvironmentById('park')!;
   
-  // Initialize encounter distance
+  // Initialize - P0-1: First encounter within 60-100 steps
   useEffect(() => {
-    setNextEncounterAt(getNextEncounterDistance());
+    const firstEncounter = isFirstEncounter.current;
+    // First encounter: 60-100 steps, subsequent: 150-400
+    const distance = firstEncounter 
+      ? Math.floor(Math.random() * 40) + 60  // 60-100 for first
+      : Math.floor(Math.random() * 250) + 150; // 150-400 for later
+    
+    setNextEncounterAt(distance);
     startWalk();
+    audioManager.playBGM('walk');
+    
     return () => endWalk();
   }, [startWalk, endWalk]);
   
-  // Auto-walk simulation (for development)
+  // Auto-walk simulation with approach tension
   useEffect(() => {
     if (isWalking) {
       walkInterval.current = setInterval(() => {
@@ -54,14 +68,33 @@ const WalkScreen: React.FC = () => {
         encounterCheckRef.current += 1;
         setEncounterProgress(prev => Math.min(prev + 1, nextEncounterAt));
         
-        // Check for encounter
-        if (encounterCheckRef.current >= nextEncounterAt) {
-          handleEncounter();
+        const stepsRemaining = nextEncounterAt - encounterCheckRef.current;
+        
+        // P0-1: Approach tension at 12/8/5/3 steps
+        if (stepsRemaining === 12) {
+          setShowRustle(true);
+          audioManager.playSFX('rustle');
+          hapticsManager.play('light');
+          setTimeout(() => setShowRustle(false), 500);
+        }
+        if (stepsRemaining === 8) {
+          setShowFootprints(true);
+          audioManager.playSFX('footstep');
+          hapticsManager.play('light');
+        }
+        if (stepsRemaining === 5) {
+          audioManager.playSFX('paw');
+          hapticsManager.play('medium');
+        }
+        if (stepsRemaining === 3) {
+          // Final ••• + BGM duck
+          audioManager.duckBGM(2000);
+          hapticsManager.play('medium');
         }
         
-        // Show hint when close
-        if (encounterCheckRef.current >= nextEncounterAt - 50 && !showEncounterHint) {
-          setShowEncounterHint(true);
+        // Trigger encounter
+        if (encounterCheckRef.current >= nextEncounterAt) {
+          handleEncounter();
         }
       }, 100);
     }
@@ -84,15 +117,55 @@ const WalkScreen: React.FC = () => {
   const handleEncounter = useCallback(() => {
     setIsWalking(false);
     
-    // Determine encounter
-    const { petId, rarity, personality } = rollEncounter();
+    // P0-1: First pet is scripted cute Common
+    const firstEncounter = isFirstEncounter.current;
+    let petId: string;
+    let rarity: Rarity;
+    let personality: Personality;
+    
+    if (firstEncounter) {
+      // Scripted first encounter: cute common pet
+      const cuteStarters = ['shiba-inu', 'corgi', 'orange-tabby'];
+      petId = cuteStarters[Math.floor(Math.random() * cuteStarters.length)];
+      rarity = 'common';
+      const cutePersonalities: Personality[] = ['shy', 'playful', 'curious'];
+      personality = cutePersonalities[Math.floor(Math.random() * cutePersonalities.length)];
+      isFirstEncounter.current = false;
+    } else {
+      // Normal encounter roll
+      const result = rollEncounter();
+      petId = result.petId;
+      rarity = result.rarity;
+      personality = result.personality;
+    }
+    
     triggerEncounter(petId, rarity, personality);
     navigate('/encounter');
   }, [triggerEncounter, navigate]);
   
   const handleBack = () => {
+    audioManager.playSFX('ui_back');
     endWalk();
+    audioManager.playBGM('home');
     navigate('/home');
+  };
+  
+  const handleToggleWalk = () => {
+    audioManager.playSFX('tap');
+    hapticsManager.play('tap');
+    setIsWalking(!isWalking);
+  };
+  
+  const stepsRemaining = nextEncounterAt - encounterProgress;
+  const progressPercent = (encounterProgress / nextEncounterAt) * 100;
+  
+  // P0-1: Distance display with tension
+  const getDistanceDisplay = () => {
+    if (stepsRemaining > 50) return '???';
+    if (stepsRemaining > 20) return `~${Math.ceil(stepsRemaining / 10) * 10} steps`;
+    if (stepsRemaining > 5) return `${stepsRemaining} steps away`;
+    if (stepsRemaining > 0) return '•••';
+    return 'Here!';
   };
   
   return (
@@ -143,30 +216,44 @@ const WalkScreen: React.FC = () => {
                 size={90 - index * 10}
                 state={isWalking ? 'walk' : 'idle'}
                 rarity={pet.rarity}
-                delay={index * 0.2}
                 showShadow={true}
               />
             </motion.div>
           ))}
         </div>
         
-        {/* Encounter hint */}
+        {/* Approach hints - rustle effect */}
         <AnimatePresence>
-          {showEncounterHint && (
+          {showRustle && (
             <motion.div
-              className={styles.encounterHint}
+              className={styles.rustleEffect}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
             >
-              <span className={styles.hintText}>Something's nearby...</span>
-              <motion.div
-                className={styles.pawPrints}
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1, repeat: Infinity }}
-              >
-                🐾
-              </motion.div>
+              <span>*rustle*</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {/* Footprints hint */}
+        <AnimatePresence>
+          {showFootprints && stepsRemaining <= 8 && stepsRemaining > 0 && (
+            <motion.div
+              className={styles.footprintHint}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {[...Array(3)].map((_, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: [0, 1, 0.5], y: 0 }}
+                  transition={{ delay: i * 0.2 }}
+                >
+                  🐾
+                </motion.span>
+              ))}
             </motion.div>
           )}
         </AnimatePresence>
@@ -179,18 +266,35 @@ const WalkScreen: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
       >
         <Panel variant="glass" padding="md" rounded="xl">
-          {/* Progress to encounter */}
-          <div className={styles.progressSection}>
-            <div className={styles.progressLabel}>
-              <PawIcon />
-              <span>Next Friend</span>
+          {/* Mystery progress - P0-1 tension display */}
+          <div className={styles.mysterySection}>
+            <div className={styles.mysteryHeader}>
+              <span className={styles.mysteryIcon}>❓</span>
+              <span className={styles.mysteryLabel}>Next Friend</span>
+              <motion.span 
+                className={styles.mysteryDistance}
+                animate={stepsRemaining <= 5 ? { scale: [1, 1.1, 1] } : {}}
+                transition={{ duration: 0.5, repeat: stepsRemaining <= 5 ? Infinity : 0 }}
+              >
+                {getDistanceDisplay()}
+              </motion.span>
             </div>
-            <ProgressBar
-              value={encounterProgress}
-              max={nextEncounterAt}
-              color="accent"
-              size="md"
-            />
+            
+            {/* Progress bar with paw marker */}
+            <div className={styles.progressTrack}>
+              <div 
+                className={styles.progressFill}
+                style={{ width: `${progressPercent}%` }}
+              />
+              <motion.div 
+                className={styles.progressPaw}
+                style={{ left: `${progressPercent}%` }}
+                animate={{ y: [0, -3, 0] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              >
+                🐾
+              </motion.div>
+            </div>
           </div>
           
           {/* Walk control */}
@@ -199,9 +303,9 @@ const WalkScreen: React.FC = () => {
               variant={isWalking ? 'secondary' : 'primary'}
               size="lg"
               fullWidth
-              onClick={() => setIsWalking(!isWalking)}
+              onClick={handleToggleWalk}
             >
-              {isWalking ? 'Pause' : 'Walk'}
+              {isWalking ? '⏸ Pause' : '🚶 Walk'}
             </Button>
           </div>
           
@@ -209,11 +313,11 @@ const WalkScreen: React.FC = () => {
           {devMode && (
             <div className={styles.devControls}>
               <Button size="sm" variant="ghost" onClick={() => {
-                addSteps(100);
-                setEncounterProgress(prev => Math.min(prev + 100, nextEncounterAt));
-                encounterCheckRef.current += 100;
+                addSteps(50);
+                setEncounterProgress(prev => Math.min(prev + 50, nextEncounterAt));
+                encounterCheckRef.current += 50;
               }}>
-                +100 Steps
+                +50 Steps
               </Button>
               <Button size="sm" variant="ghost" onClick={() => {
                 encounterCheckRef.current = nextEncounterAt;
@@ -291,7 +395,6 @@ const ParallaxBackground: React.FC<ParallaxBackgroundProps> = ({ environment, sc
         style={{ transform: `translateX(${-scrollOffset * 0.5}px)` }}
       >
         <svg viewBox="0 0 1600 250" className={styles.midLayer} preserveAspectRatio="xMidYMid slice">
-          {/* Trees/buildings based on environment */}
           {environment.id === 'park' && (
             <g>
               {[0, 200, 450, 700, 950, 1200, 1450].map((x, i) => (
@@ -304,53 +407,6 @@ const ParallaxBackground: React.FC<ParallaxBackgroundProps> = ({ environment, sc
               ))}
             </g>
           )}
-          
-          {environment.id === 'city' && (
-            <g>
-              {[0, 150, 320, 500, 680, 850, 1020, 1200, 1380].map((x, i) => (
-                <g key={i} transform={`translate(${x}, 50)`}>
-                  <rect x="10" y={100 - (i % 3) * 30} width="80" height={100 + (i % 3) * 30} fill="#D4C5B8" />
-                  <rect x="20" y={110 - (i % 3) * 30} width="15" height="20" fill="#B8D4E8" opacity="0.6" />
-                  <rect x="45" y={110 - (i % 3) * 30} width="15" height="20" fill="#B8D4E8" opacity="0.6" />
-                  <rect x="20" y={140 - (i % 3) * 30} width="15" height="20" fill="#B8D4E8" opacity="0.6" />
-                  <rect x="45" y={140 - (i % 3) * 30} width="15" height="20" fill="#B8D4E8" opacity="0.6" />
-                </g>
-              ))}
-            </g>
-          )}
-          
-          {environment.id === 'riverside' && (
-            <g>
-              {/* Willow trees */}
-              {[100, 400, 700, 1000, 1300].map((x, i) => (
-                <g key={i} transform={`translate(${x}, 60)`}>
-                  <rect x="20" y="100" width="15" height="80" fill="#8B7355" />
-                  <ellipse cx="25" cy="70" rx="50" ry="60" fill="#7CB369" />
-                  {/* Drooping branches */}
-                  <path d="M 0 60 Q -20 120 -10 150" stroke="#6B8F4E" strokeWidth="3" fill="none" />
-                  <path d="M 50 60 Q 70 120 60 150" stroke="#6B8F4E" strokeWidth="3" fill="none" />
-                </g>
-              ))}
-              {/* Water */}
-              <rect x="0" y="180" width="1600" height="70" fill="#89B8D4" opacity="0.5" />
-            </g>
-          )}
-          
-          {environment.id === 'beach' && (
-            <g>
-              {/* Palm trees */}
-              {[150, 500, 900, 1300].map((x, i) => (
-                <g key={i} transform={`translate(${x}, 40)`}>
-                  <path d={`M 25 180 Q 30 100 25 50`} stroke="#8B7355" strokeWidth="12" fill="none" />
-                  <ellipse cx="25" cy="30" rx="60" ry="30" fill="#6B8F4E" />
-                  <ellipse cx="-10" cy="40" rx="50" ry="25" fill="#7CB369" />
-                  <ellipse cx="60" cy="40" rx="50" ry="25" fill="#7CB369" />
-                </g>
-              ))}
-              {/* Water */}
-              <rect x="0" y="200" width="1600" height="50" fill="#89B8D4" opacity="0.6" />
-            </g>
-          )}
         </svg>
       </div>
       
@@ -360,13 +416,9 @@ const ParallaxBackground: React.FC<ParallaxBackgroundProps> = ({ environment, sc
         style={{ transform: `translateX(${-scrollOffset}px)` }}
       >
         <svg viewBox="0 0 2000 150" className={styles.groundLayer} preserveAspectRatio="xMidYMid slice">
-          {/* Main ground */}
           <rect x="0" y="50" width="2000" height="100" fill={colors.ground} />
-          
-          {/* Path */}
           <rect x="0" y="80" width="2000" height="40" fill={colors.path} />
           
-          {/* Grass details */}
           <g fill={colors.accent} opacity="0.7">
             {[...Array(40)].map((_, i) => (
               <path
@@ -378,30 +430,16 @@ const ParallaxBackground: React.FC<ParallaxBackgroundProps> = ({ environment, sc
         </svg>
       </div>
       
-      {/* Foreground layer */}
+      {/* Foreground */}
       <div 
         className={styles.layer}
         style={{ transform: `translateX(${-scrollOffset * 1.3}px)` }}
       >
         <svg viewBox="0 0 2400 100" className={styles.foregroundLayer} preserveAspectRatio="xMidYMid slice">
-          {/* Grass tufts */}
           <g fill={colors.accent}>
             {[...Array(30)].map((_, i) => (
               <g key={i} transform={`translate(${i * 80}, 0)`}>
                 <path d="M 10 100 Q 15 70 12 100 Q 20 75 25 100 Q 18 80 30 100" />
-              </g>
-            ))}
-          </g>
-          
-          {/* Flowers */}
-          <g>
-            {[...Array(15)].map((_, i) => (
-              <g key={i} transform={`translate(${i * 160 + 40}, 60)`}>
-                <line x1="0" y1="20" x2="0" y2="40" stroke="#6B8F4E" strokeWidth="2" />
-                <circle cx="-4" cy="18" r="4" fill={i % 2 === 0 ? '#FFB7C5' : '#F4A261'} />
-                <circle cx="4" cy="18" r="4" fill={i % 2 === 0 ? '#FFB7C5' : '#F4A261'} />
-                <circle cx="0" cy="14" r="4" fill={i % 2 === 0 ? '#FFB7C5' : '#F4A261'} />
-                <circle cx="0" cy="18" r="3" fill="#FFD93D" />
               </g>
             ))}
           </g>
@@ -412,12 +450,7 @@ const ParallaxBackground: React.FC<ParallaxBackgroundProps> = ({ environment, sc
 };
 
 // Helper functions
-function getNextEncounterDistance(): number {
-  return Math.floor(Math.random() * 700) + 300; // 300-1000 steps
-}
-
 function rollEncounter(): { petId: string; rarity: Rarity; personality: Personality } {
-  // Roll rarity
   const roll = Math.random() * 100;
   let cumulative = 0;
   let rarity: Rarity = 'common';
@@ -430,11 +463,9 @@ function rollEncounter(): { petId: string; rarity: Rarity; personality: Personal
     }
   }
   
-  // Get pets of this rarity
   const eligiblePets = PETS.filter(p => p.baseRarity === rarity);
   const pet = eligiblePets[Math.floor(Math.random() * eligiblePets.length)];
   
-  // Random personality
   const personalities = Object.keys(PERSONALITIES) as Personality[];
   const personality = personalities[Math.floor(Math.random() * personalities.length)];
   
@@ -445,15 +476,6 @@ function rollEncounter(): { petId: string; rarity: Rarity; personality: Personal
 const BackIcon: React.FC = () => (
   <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M15 18L9 12L15 6" />
-  </svg>
-);
-
-const PawIcon: React.FC = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="var(--color-accent)">
-    <ellipse cx="12" cy="17" rx="5" ry="4" />
-    <ellipse cx="6" cy="11" rx="2.5" ry="3" />
-    <ellipse cx="12" cy="8" rx="2.5" ry="3" />
-    <ellipse cx="18" cy="11" rx="2.5" ry="3" />
   </svg>
 );
 

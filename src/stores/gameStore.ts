@@ -72,75 +72,14 @@ export const useGameStore = create<GameState>()(
       pendingEncounter: null,
       devMode: false,
       
-      // Initialize game - includes migration for existing saves with < 3 team pets
-      // VERTICAL SLICE: Always ensure 3 team pets for demo purposes
+      // Initialize game - P0-1: NO auto-seeding, player MUST go through First 5 Minutes
       initGame: async () => {
         const player = await initializePlayer();
-        let pets = await getAllPets();
-        let teamPets = pets.filter(p => player.teamPetIds.includes(p.instanceId));
+        const pets = await getAllPets();
+        const teamPets = pets.filter(p => player.teamPetIds.includes(p.instanceId));
         
-        // VERTICAL SLICE DEMO: If team has < 3 pets, seed missing starters automatically
-        // This works regardless of onboarding state to ensure Home always shows 3 pets
-        if (teamPets.length < 3) {
-          console.log('[PawBloom] Demo mode: Seeding team to 3 pets...');
-          
-          const allStarters = ['shiba-inu', 'corgi', 'orange-tabby'];
-          const teamPetIds = [...player.teamPetIds];
-          const personalities: Personality[] = ['playful', 'curious', 'shy', 'foodie', 'brave'];
-          const bonusNames = ['Mochi', 'Biscuit', 'Pudding', 'Cookie', 'Tofu'];
-          
-          // Add missing starters until we have 3
-          for (const starterId of allStarters) {
-            if (teamPets.length >= 3) break;
-            
-            // Check if already owned
-            const existingPet = pets.find(p => p.petId === starterId);
-            if (existingPet) {
-              // Add to team if not already
-              if (!teamPetIds.includes(existingPet.instanceId)) {
-                teamPetIds.push(existingPet.instanceId);
-                teamPets.push(existingPet);
-              }
-            } else {
-              // Create new pet
-              const newPet: PetInstance = {
-                instanceId: uuidv4(),
-                petId: starterId,
-                nickname: bonusNames[Math.floor(Math.random() * bonusNames.length)],
-                personality: personalities[Math.floor(Math.random() * personalities.length)],
-                rarity: 'common',
-                bondLevel: 1,
-                bondXp: 0,
-                totalStepsTogether: 0,
-                equippedDecor: [],
-                memories: [{
-                  id: uuidv4(),
-                  type: 'discovery',
-                  title: 'Bonus Friend!',
-                  description: 'A gift for your adventures!',
-                  timestamp: Date.now()
-                }],
-                discoveredAt: Date.now(),
-                isStarter: true
-              };
-              
-              await addPet(newPet);
-              pets.push(newPet);
-              teamPetIds.push(newPet.instanceId);
-              teamPets.push(newPet);
-            }
-          }
-          
-          // Persist updated team (limit to 3)
-          const finalTeamIds = teamPetIds.slice(0, 3);
-          await updatePlayer({ teamPetIds: finalTeamIds });
-          teamPets = teamPets.slice(0, 3);
-          
-          // Also mark onboarding as complete since we now have pets
-          set({ hasCompletedOnboarding: true });
-          
-          console.log('[PawBloom] Demo seeding complete. Team pets:', teamPets.map(p => p.petId));
-        }
+        // P0-1 STRICT: Do NOT auto-seed pets - player must experience First 5 Minutes
+        // Demo seeding DISABLED to ensure scripted first encounter at 60-100 steps
         
         set({
           player,
@@ -150,14 +89,15 @@ export const useGameStore = create<GameState>()(
         });
       },
       
-      // Complete onboarding with starter pet + 2 bonus pets for Vertical Slice demo
+      // P0-1: Complete onboarding with ONLY starter pet - NO bonus pets
+      // Player must experience First 5 Minutes and first encounter at 60-100 steps
       completeOnboarding: async (starterPetId: string, nickname: string) => {
-        console.log('[PawBloom] Starting onboarding completion...');
+        console.log('[PawBloom] Starting onboarding - P0-1 single starter only');
         
         const personalities: Personality[] = ['playful', 'curious', 'shy', 'foodie', 'brave'];
         const getRandomPersonality = () => personalities[Math.floor(Math.random() * personalities.length)];
         
-        // Main starter pet (user's choice)
+        // Main starter pet (user's choice) - ONLY ONE PET
         const starterPet: PetInstance = {
           instanceId: uuidv4(),
           petId: starterPetId,
@@ -179,91 +119,26 @@ export const useGameStore = create<GameState>()(
           isStarter: true
         };
         
-        // Vertical Slice: Add 2 bonus starter pets to show full team of 3
-        const allStarters = ['shiba-inu', 'corgi', 'orange-tabby'];
-        const bonusStarters = allStarters.filter(id => id !== starterPetId).slice(0, 2);
-        const bonusNames = ['Mochi', 'Biscuit', 'Pudding', 'Cookie'];
-        
-        const bonusPet1: PetInstance = {
-          instanceId: uuidv4(),
-          petId: bonusStarters[0],
-          nickname: bonusNames[Math.floor(Math.random() * bonusNames.length)],
-          personality: getRandomPersonality(),
-          rarity: 'common',
-          bondLevel: 1,
-          bondXp: 0,
-          totalStepsTogether: 0,
-          equippedDecor: [],
-          memories: [{
-            id: uuidv4(),
-            type: 'discovery',
-            title: 'Bonus Friend!',
-            description: 'A gift for joining our adventure!',
-            timestamp: Date.now() - 1000
-          }],
-          discoveredAt: Date.now() - 1000,
-          isStarter: true
-        };
-        
-        const bonusPet2: PetInstance = {
-          instanceId: uuidv4(),
-          petId: bonusStarters[1],
-          nickname: bonusNames[Math.floor(Math.random() * bonusNames.length)],
-          personality: getRandomPersonality(),
-          rarity: 'uncommon',
-          bondLevel: 1,
-          bondXp: 0,
-          totalStepsTogether: 0,
-          equippedDecor: [],
-          memories: [{
-            id: uuidv4(),
-            type: 'discovery',
-            title: 'Bonus Friend!',
-            description: 'A gift for joining our adventure!',
-            timestamp: Date.now() - 2000
-          }],
-          discoveredAt: Date.now() - 2000,
-          isStarter: true
-        };
-        
-        // Add all 3 pets to Dexie
+        // P0-1: Only add the ONE starter pet
         await addPet(starterPet);
-        await addPet(bonusPet1);
-        await addPet(bonusPet2);
-        console.log('[PawBloom] Added 3 pets to DB');
+        console.log('[PawBloom] Added starter pet:', starterPetId);
         
-        // Set all 3 as team - CRITICAL: must happen before reading back
-        const teamIds = [starterPet.instanceId, bonusPet1.instanceId, bonusPet2.instanceId];
+        // Set only the starter as team
+        const teamIds = [starterPet.instanceId];
         await updatePlayer({ teamPetIds: teamIds });
-        console.log('[PawBloom] Updated player teamPetIds:', teamIds);
         
         // Read back from Dexie to verify persistence
         const verifyPlayer = await db.player.get('main');
         const verifyPets = await getAllPets();
         
-        // ASSERT: Verify data was persisted correctly
-        if (!verifyPlayer || verifyPlayer.teamPetIds.length !== 3) {
-          console.error('[PawBloom] CRITICAL: teamPetIds not persisted!', verifyPlayer?.teamPetIds);
-          throw new Error('Failed to persist team pet IDs');
-        }
-        if (verifyPets.length < 3) {
-          console.error('[PawBloom] CRITICAL: Pets not persisted!', verifyPets.length);
-          throw new Error('Failed to persist pets');
-        }
-        
         // Build teamPets from verified data
-        const teamPets = verifyPets.filter(p => verifyPlayer.teamPetIds.includes(p.instanceId));
+        const teamPets = verifyPets.filter(p => verifyPlayer?.teamPetIds.includes(p.instanceId));
         
-        if (teamPets.length !== 3) {
-          console.error('[PawBloom] CRITICAL: Team pets mismatch!', teamPets.length);
-          throw new Error('Team pets count mismatch after persistence');
-        }
-        
-        console.log('[PawBloom] Onboarding complete. Team:', teamPets.map(p => p.petId));
+        console.log('[PawBloom] Onboarding complete. Single starter:', starterPetId);
         
         set({
           hasCompletedOnboarding: true,
-          player: verifyPlayer,
+          player: verifyPlayer || null,
           ownedPets: verifyPets,
           teamPets,
           selectedStarterId: null,
