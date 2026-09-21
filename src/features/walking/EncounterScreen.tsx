@@ -53,6 +53,7 @@ const EncounterScreen: React.FC = () => {
   const petControls = useAnimation();
   const tapAreaRef = useRef<HTMLDivElement>(null);
   const revealInProgress = useRef(false);
+  const shareCardPendingRef = useRef(false); // Prevent race between collectPet and useEffect
   
   const pet = pendingEncounter ? getPetById(pendingEncounter.petId) : null;
   const rarity = pendingEncounter?.rarity || 'common';
@@ -63,8 +64,8 @@ const EncounterScreen: React.FC = () => {
 
   // Phase progression - EXACT beat sheet
   useEffect(() => {
-    // Don't navigate away if showing share card
-    if (!pendingEncounter && !showShareCard) {
+    // Don't navigate away if showing share card or pending collection
+    if (!pendingEncounter && !showShareCard && !shareCardPendingRef.current) {
       navigate('/walk', { replace: true });
       return;
     }
@@ -181,6 +182,8 @@ const EncounterScreen: React.FC = () => {
   const handleCollect = async () => {
     if (isCollecting || !pet || !pendingEncounter) return;
     
+    // CRITICAL: Set ref BEFORE collectPet to prevent race condition
+    shareCardPendingRef.current = true;
     setIsCollecting(true);
     audioManager.playSFX('collect');
     hapticsManager.play('success');
@@ -209,14 +212,17 @@ const EncounterScreen: React.FC = () => {
       
       // Show share card (P0-5)
       setShowShareCard(true);
+      console.log('[Encounter] ShareCard should now be visible');
     } catch (error) {
       console.error('Failed to collect pet:', error);
+      shareCardPendingRef.current = false;
       setIsCollecting(false);
     }
   };
 
   // Handle share card close - navigate to home
   const handleShareCardClose = () => {
+    shareCardPendingRef.current = false;
     setShowShareCard(false);
     navigate('/home', { replace: true });
   };
