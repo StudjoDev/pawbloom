@@ -1,8 +1,8 @@
 // PawBloom AnimatedPet - Real animations with Framer Motion
 // Soft Anime Chibi style with transparent PNGs
 
-import React, { useEffect, useState } from 'react';
-import { motion, useAnimation, Variants } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { getPetById, type Rarity, RARITY_COLORS } from '@/data/pets';
 
 export type PetAnimState = 'idle' | 'walk' | 'happy' | 'surprised' | 'sleepy' | 'silhouette';
@@ -15,92 +15,11 @@ interface AnimatedPetProps {
   rarity?: Rarity;
   className?: string;
   onClick?: () => void;
-  delay?: number; // Stagger delay for multiple pets
+  delay?: number;
   showShadow?: boolean;
 }
 
 const getAssetBase = () => import.meta.env.BASE_URL || '/';
-
-// Animation variants
-const idleVariants: Variants = {
-  animate: {
-    y: [0, -4, 0, -2, 0],
-    scaleY: [1, 1.02, 1, 1.01, 1],
-    rotate: [-1, 1, -0.5, 0.5, 0],
-    transition: {
-      duration: 3,
-      repeat: Infinity,
-      ease: 'easeInOut',
-    },
-  },
-};
-
-const walkVariants: Variants = {
-  animate: {
-    y: [0, -8, 0, -6, 0],
-    rotate: [-4, 4, -3, 3, 0],
-    scaleX: [1, 0.98, 1, 0.99, 1],
-    transition: {
-      duration: 0.5,
-      repeat: Infinity,
-      ease: 'easeInOut',
-    },
-  },
-};
-
-const happyVariants: Variants = {
-  animate: {
-    y: [0, -24, -8, -16, 0],
-    rotate: [0, -8, 8, -4, 0],
-    scale: [1, 1.1, 1.05, 1.08, 1],
-    transition: {
-      duration: 0.6,
-      ease: 'easeOut',
-    },
-  },
-};
-
-const surprisedVariants: Variants = {
-  animate: {
-    scale: [1, 1.15, 1.1, 1.12, 1],
-    x: [0, -4, 4, -2, 2, 0],
-    transition: {
-      duration: 0.4,
-      ease: 'easeOut',
-    },
-  },
-};
-
-const sleepyVariants: Variants = {
-  animate: {
-    y: [0, 4, 2, 4, 0],
-    rotate: [0, 5, 8, 5, 0],
-    opacity: [1, 0.9, 0.85, 0.9, 1],
-    scaleY: [1, 0.98, 0.97, 0.98, 1],
-    transition: {
-      duration: 4,
-      repeat: Infinity,
-      ease: 'easeInOut',
-    },
-  },
-};
-
-const getVariants = (state: PetAnimState): Variants => {
-  switch (state) {
-    case 'walk':
-      return walkVariants;
-    case 'happy':
-      return happyVariants;
-    case 'surprised':
-      return surprisedVariants;
-    case 'sleepy':
-      return sleepyVariants;
-    case 'silhouette':
-    case 'idle':
-    default:
-      return idleVariants;
-  }
-};
 
 export const AnimatedPet: React.FC<AnimatedPetProps> = ({
   petId,
@@ -114,45 +33,78 @@ export const AnimatedPet: React.FC<AnimatedPetProps> = ({
   showShadow = true,
 }) => {
   const pet = getPetById(petId);
-  const controls = useAnimation();
-  const [currentState, setCurrentState] = useState(state);
-
-  useEffect(() => {
-    setCurrentState(state);
-    
-    const startAnimation = async () => {
-      await new Promise(resolve => setTimeout(resolve, delay * 1000));
-      controls.start('animate');
-    };
-    
-    startAnimation();
-  }, [state, delay, controls]);
-
-  // Trigger one-shot animations
-  useEffect(() => {
-    if (state === 'happy' || state === 'surprised') {
-      controls.start('animate').then(() => {
-        // Return to idle after one-shot animation
-        setTimeout(() => {
-          setCurrentState('idle');
-          controls.start('animate');
-        }, state === 'happy' ? 600 : 400);
-      });
-    }
-  }, [state, controls]);
 
   if (!pet) {
     return <div style={{ width: size, height: size }} className={className} />;
   }
 
-  const isSilhouette = currentState === 'silhouette';
+  const isSilhouette = state === 'silhouette';
   const assetBase = getAssetBase();
   
   const imagePath = isSilhouette
     ? `${assetBase}pets/silhouette/${petId}.png`
     : `${assetBase}pets/idle/${petId}.png`;
 
-  const variants = getVariants(currentState);
+  // Get animation based on state - MORE VISIBLE animations
+  const getAnimation = () => {
+    switch (state) {
+      case 'walk':
+        return {
+          y: [0, -14, 0, -10, 0],
+          rotate: [-6, 6, -5, 5, 0],
+          scaleX: [1, 0.95, 1, 0.96, 1],
+        };
+      case 'happy':
+        return {
+          y: [0, -35, -12, -25, 0],
+          rotate: [0, -12, 12, -6, 0],
+          scale: [1, 1.15, 1.08, 1.12, 1],
+        };
+      case 'surprised':
+        return {
+          scale: [1, 1.22, 1.1, 1.15, 1],
+          x: [0, -8, 8, -5, 5, 0],
+        };
+      case 'sleepy':
+        return {
+          y: [0, 8, 5, 8, 0],
+          rotate: [0, 8, 12, 8, 0],
+          opacity: [1, 0.85, 0.78, 0.85, 1],
+          scaleY: [1, 0.96, 0.93, 0.96, 1],
+        };
+      case 'silhouette':
+        return {
+          scale: [1, 1.05, 1],
+        };
+      case 'idle':
+      default:
+        // More visible idle - breathing + bob + gentle sway
+        return {
+          y: [0, -12, 0, -8, 0],
+          scaleY: [1, 1.05, 1, 1.03, 1],
+          rotate: [-3, 3, -2, 2, 0],
+        };
+    }
+  };
+
+  const getTransition = () => {
+    const baseDelay = delay;
+    switch (state) {
+      case 'walk':
+        return { duration: 0.45, repeat: Infinity, ease: 'easeInOut', delay: baseDelay };
+      case 'happy':
+        return { duration: 0.55, ease: 'easeOut', delay: baseDelay };
+      case 'surprised':
+        return { duration: 0.35, ease: 'easeOut', delay: baseDelay };
+      case 'sleepy':
+        return { duration: 4, repeat: Infinity, ease: 'easeInOut', delay: baseDelay };
+      case 'silhouette':
+        return { duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: baseDelay };
+      case 'idle':
+      default:
+        return { duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: baseDelay };
+    }
+  };
 
   return (
     <div
@@ -191,23 +143,24 @@ export const AnimatedPet: React.FC<AnimatedPetProps> = ({
         <motion.div
           style={{
             position: 'absolute',
-            bottom: 0,
+            bottom: 4,
             left: '50%',
-            width: size * 0.6,
-            height: size * 0.12,
-            background: 'radial-gradient(ellipse, rgba(0,0,0,0.2) 0%, transparent 70%)',
+            width: size * 0.55,
+            height: size * 0.1,
+            background: 'radial-gradient(ellipse, rgba(0,0,0,0.25) 0%, transparent 70%)',
             borderRadius: '50%',
             transform: 'translateX(-50%)',
             zIndex: 0,
           }}
           animate={{
-            scaleX: currentState === 'walk' ? [1, 0.9, 1] : [1, 1.05, 1],
-            opacity: currentState === 'walk' ? [0.2, 0.15, 0.2] : [0.2, 0.18, 0.2],
+            scaleX: state === 'walk' ? [1, 0.85, 1] : [1, 1.08, 1],
+            opacity: state === 'walk' ? [0.25, 0.15, 0.25] : [0.25, 0.2, 0.25],
           }}
           transition={{
-            duration: currentState === 'walk' ? 0.5 : 3,
+            duration: state === 'walk' ? 0.45 : 2.5,
             repeat: Infinity,
             ease: 'easeInOut',
+            delay: delay,
           }}
         />
       )}
@@ -216,11 +169,10 @@ export const AnimatedPet: React.FC<AnimatedPetProps> = ({
       <motion.img
         src={imagePath}
         alt={pet.name}
-        variants={variants}
-        animate={controls}
-        initial={{ y: 0, rotate: 0, scale: 1 }}
-        whileHover={onClick ? { scale: 1.08 } : undefined}
-        whileTap={onClick ? { scale: 0.95 } : undefined}
+        animate={getAnimation()}
+        transition={getTransition()}
+        whileHover={onClick ? { scale: 1.1 } : undefined}
+        whileTap={onClick ? { scale: 0.92 } : undefined}
         style={{
           width: '100%',
           height: '100%',
