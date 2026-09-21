@@ -141,10 +141,12 @@ const CollectionScreen: React.FC = () => {
                       )}
                     </div>
                     
-                    {/* Pet info */}
+                    {/* Pet info - show nickname if available, else species name */}
                     <div className={styles.petInfo}>
                       <span className={styles.petName}>
-                        {isDiscovered ? pet.name : '???'}
+                        {isDiscovered 
+                          ? (instances[0]?.nickname || pet.name) 
+                          : '???'}
                       </span>
                       <div 
                         className={styles.rarityDot}

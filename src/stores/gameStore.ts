@@ -90,18 +90,24 @@ export const useGameStore = create<GameState>()(
       },
       
       // P0-1: Complete onboarding with ONLY starter pet - NO bonus pets
-      // Player must experience First 5 Minutes and first encounter at 60-100 steps
+      // CRITICAL: Must ensure player row exists BEFORE updatePlayer call
       completeOnboarding: async (starterPetId: string, nickname: string) => {
         console.log('[PawBloom] Starting onboarding - P0-1 single starter only');
+        console.log('[PawBloom] Nickname from NamingScreen:', nickname || '(empty - use species name)');
+        
+        // CRITICAL FIX: Ensure player row exists BEFORE any updates
+        // initializePlayer creates row if missing, returns existing if present
+        const player = await initializePlayer();
+        console.log('[PawBloom] Player initialized. Current teamPetIds:', player.teamPetIds);
         
         const personalities: Personality[] = ['playful', 'curious', 'shy', 'foodie', 'brave'];
         const getRandomPersonality = () => personalities[Math.floor(Math.random() * personalities.length)];
         
-        // Main starter pet (user's choice) - ONLY ONE PET
+        // Main starter pet with nickname from NamingScreen
         const starterPet: PetInstance = {
           instanceId: uuidv4(),
           petId: starterPetId,
-          nickname: nickname || undefined,
+          nickname: nickname.trim() || undefined, // Empty string -> undefined -> falls back to species name
           personality: getRandomPersonality(),
           rarity: 'common',
           bondLevel: 1,
@@ -119,27 +125,53 @@ export const useGameStore = create<GameState>()(
           isStarter: true
         };
         
-        // P0-1: Only add the ONE starter pet
+        // Add pet to DB first
         await addPet(starterPet);
-        console.log('[PawBloom] Added starter pet:', starterPetId);
+        console.log('[PawBloom] Added starter pet:', starterPetId, 'with nickname:', starterPet.nickname);
         
-        // Set only the starter as team
-        const teamIds = [starterPet.instanceId];
-        await updatePlayer({ teamPetIds: teamIds });
+        // ATOMIC team write - player row MUST exist (ensured by initializePlayer above)
+        const newTeamIds = [starterPet.instanceId];
+        await updatePlayer({ 
+          teamPetIds: newTeamIds,
+          stats: {
+            ...player.stats,
+            totalPetsCollected: player.stats.totalPetsCollected + 1
+          }
+        });
         
-        // Read back from Dexie to verify persistence
+        // VERIFY: Read back from Dexie to confirm persistence
         const verifyPlayer = await db.player.get('main');
-        const verifyPets = await getAllPets();
+        
+        // ASSERT: teamPetIds must include the starter
+        if (!verifyPlayer?.teamPetIds.includes(starterPet.instanceId)) {
+          console.error('[PawBloom] CRITICAL: teamPetIds not persisted! Attempting put fallback...');
+          // Fallback: full put instead of update
+          await db.player.put({
+            ...player,
+            teamPetIds: newTeamIds,
+            lastPlayedAt: Date.now()
+          });
+          // Re-verify
+          const fallbackPlayer = await db.player.get('main');
+          console.log('[PawBloom] Fallback result:', fallbackPlayer?.teamPetIds);
+        }
+        
+        // Re-read after potential fallback
+        const finalPlayer = await db.player.get('main');
+        const finalPets = await getAllPets();
         
         // Build teamPets from verified data
-        const teamPets = verifyPets.filter(p => verifyPlayer?.teamPetIds.includes(p.instanceId));
+        const teamPets = finalPets.filter(p => finalPlayer?.teamPetIds.includes(p.instanceId));
         
-        console.log('[PawBloom] Onboarding complete. Single starter:', starterPetId);
+        console.log('[PawBloom] Onboarding complete.');
+        console.log('[PawBloom] Owned pets:', finalPets.length);
+        console.log('[PawBloom] Team pets:', teamPets.length, teamPets.map(p => p.nickname || p.petId));
+        console.log('[PawBloom] Player teamPetIds:', finalPlayer?.teamPetIds);
         
         set({
           hasCompletedOnboarding: true,
-          player: verifyPlayer || null,
-          ownedPets: verifyPets,
+          player: finalPlayer || null,
+          ownedPets: finalPets,
           teamPets,
           selectedStarterId: null,
           starterNickname: ''
