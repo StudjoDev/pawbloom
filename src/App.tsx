@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/stores/gameStore';
 
@@ -21,7 +21,7 @@ function App() {
   const hasCompletedOnboarding = useGameStore((state) => state.hasCompletedOnboarding);
   
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AnimatePresence mode="wait">
         <Routes>
           {/* Onboarding Flow */}
@@ -44,7 +44,7 @@ function App() {
       
       {/* Dev Tools - activated by long press on logo */}
       <DevDrawer />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
