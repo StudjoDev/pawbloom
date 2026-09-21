@@ -1,8 +1,8 @@
-// PawBloom PetRenderer - Wrapper for AnimatedPet with transparent PNGs
-// Style A Soft Anime Chibi art assets
+// PawBloom PetRenderer - Wrapper for PetSprite with frame animation
+// Maps old state names to new pose system
 
 import React from 'react';
-import AnimatedPet, { type PetAnimState } from './AnimatedPet';
+import PetSprite, { type PetPose } from './PetSprite';
 import type { Rarity } from '@/data/pets';
 
 interface PetRendererProps {
@@ -13,8 +13,9 @@ interface PetRendererProps {
   rarity?: Rarity;
   className?: string;
   onClick?: () => void;
-  delay?: number;
-  showShadow?: boolean;
+  delay?: number; // Legacy - ignored
+  showShadow?: boolean; // Legacy - always shows shadow
+  onPoseComplete?: () => void;
 }
 
 export const PetRenderer: React.FC<PetRendererProps> = ({
@@ -25,20 +26,21 @@ export const PetRenderer: React.FC<PetRendererProps> = ({
   rarity = 'common',
   className = '',
   onClick,
-  delay = 0,
-  showShadow = true,
+  onPoseComplete,
 }) => {
+  // Map state to pose
+  const pose: PetPose = state as PetPose;
+
   return (
-    <AnimatedPet
+    <PetSprite
       petId={petId}
       size={size}
-      state={state as PetAnimState}
+      pose={pose}
       showRarityGlow={showRarityGlow}
       rarity={rarity}
       className={className}
       onClick={onClick}
-      delay={delay}
-      showShadow={showShadow}
+      onPoseComplete={onPoseComplete}
     />
   );
 };
