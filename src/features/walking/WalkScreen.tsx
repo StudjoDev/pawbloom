@@ -131,26 +131,20 @@ const WalkScreen: React.FC = () => {
               key={pet.instanceId}
               className={styles.walkingPet}
               style={{
-                left: `${20 + index * 25}%`,
+                left: `${15 + index * 28}%`,
                 zIndex: 10 - index
               }}
-              animate={isWalking ? {
-                y: [0, -8, 0],
-                x: [0, 2, 0, -2, 0]
-              } : {
-                y: [0, -3, 0]
-              }}
-              transition={{
-                duration: isWalking ? 0.4 : 2,
-                repeat: Infinity,
-                delay: index * 0.1
-              }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.15 }}
             >
               <PetRenderer
                 petId={pet.petId}
-                size={80 - index * 10}
+                size={90 - index * 10}
                 state={isWalking ? 'walk' : 'idle'}
                 rarity={pet.rarity}
+                delay={index * 0.2}
+                showShadow={true}
               />
             </motion.div>
           ))}

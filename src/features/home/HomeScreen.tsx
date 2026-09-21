@@ -71,20 +71,24 @@ const HomeScreen: React.FC = () => {
         <div className={styles.petsContainer}>
           {teamPets.map((pet, index) => {
             const petDef = getPetById(pet.petId);
+            const sizes = [110, 130, 100]; // Center pet is larger
+            const petSize = sizes[index] || 100;
             return (
               <motion.div
                 key={pet.instanceId}
                 className={styles.petSlot}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + index * 0.15, duration: 0.5 }}
+                initial={{ opacity: 0, y: 30, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.3 + index * 0.2, duration: 0.6, type: 'spring' }}
                 onClick={() => navigate(`/pet/${pet.instanceId}`)}
               >
                 <PetRenderer
                   petId={pet.petId}
-                  size={100 - index * 10}
+                  size={petSize}
                   state="idle"
                   rarity={pet.rarity}
+                  delay={0.5 + index * 0.3}
+                  showShadow={true}
                 />
                 <div className={styles.petLabel}>
                   <span className={styles.petNickname}>
