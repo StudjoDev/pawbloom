@@ -1,0 +1,207 @@
+/* Walk Screen Styles */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-sky-light);
+}
+
+.parallaxContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.parallax {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.layer {
+  position: absolute;
+  width: 300%;
+  height: 100%;
+  will-change: transform;
+}
+
+.skyLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40%;
+}
+
+.farLayer {
+  position: absolute;
+  bottom: 35%;
+  left: 0;
+  width: 100%;
+  height: 25%;
+}
+
+.midLayer {
+  position: absolute;
+  bottom: 20%;
+  left: 0;
+  width: 100%;
+  height: 35%;
+}
+
+.groundLayer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 25%;
+}
+
+.foregroundLayer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 15%;
+}
+
+.header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  padding-top: calc(var(--safe-top) + var(--space-md));
+}
+
+.backButton {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--color-secondary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.envLabel {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-secondary-dark);
+}
+
+.envName {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-primary-dark);
+}
+
+.stepCounter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 16px;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-secondary-dark);
+}
+
+.stepValue {
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.stepLabel {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.walkArea {
+  flex: 1;
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 25%;
+}
+
+.petsWalking {
+  position: relative;
+  width: 100%;
+  height: 120px;
+}
+
+.walkingPet {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+.encounterHint {
+  position: absolute;
+  top: 30%;
+  right: 20%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.hintText {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-accent-dark);
+  border: 2px solid var(--color-accent);
+}
+
+.pawPrints {
+  font-size: 32px;
+}
+
+.controls {
+  position: relative;
+  z-index: 10;
+  padding: var(--space-md);
+  padding-bottom: calc(var(--safe-bottom) + var(--space-md));
+}
+
+.progressSection {
+  margin-bottom: var(--space-md);
+}
+
+.progressLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.walkControl {
+  margin-bottom: var(--space-sm);
+}
+
+.devControls {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-secondary-dark);
+}

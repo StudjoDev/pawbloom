@@ -1,0 +1,274 @@
+/* Encounter Screen Styles */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.rarityGlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sparklesContainer {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+}
+
+.footprints {
+  display: flex;
+  gap: var(--space-md);
+  position: absolute;
+  top: 40%;
+}
+
+.noticeText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+
+.noticeText span:first-child {
+  font-size: var(--text-subheading);
+  font-weight: 600;
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.9);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+}
+
+.questionMarks {
+  font-size: 48px;
+}
+
+.bushContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.bushText {
+  font-size: var(--text-body);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.9);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+}
+
+.silhouetteContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.tapHint {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--color-accent);
+  background: rgba(255, 255, 255, 0.95);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-accent);
+}
+
+.revealContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  perspective: 1000px;
+}
+
+.reactionBubble {
+  position: absolute;
+  bottom: -60px;
+  background: var(--color-surface);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 2px solid var(--color-secondary-dark);
+}
+
+.reactionBubble::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid var(--color-secondary-dark);
+}
+
+.reactionBubble::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--color-surface);
+}
+
+.reactionBubble span {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cardOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: var(--z-modal);
+  cursor: default;
+}
+
+.collectionCard {
+  width: 100%;
+  max-width: 430px;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  overflow: hidden;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.rarityBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  color: white;
+}
+
+.rarityStars {
+  font-size: var(--text-subheading);
+}
+
+.rarityText {
+  font-size: var(--text-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cardPetPreview {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: var(--color-secondary-light);
+}
+
+.cardInfo {
+  padding: var(--space-lg);
+}
+
+.cardPetName {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: var(--space-xs);
+}
+
+.cardPetDesc {
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: var(--space-md);
+}
+
+.cardTraits {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-lg);
+}
+
+.trait {
+  text-align: center;
+}
+
+.traitLabel {
+  display: block;
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.traitValue {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.nicknameSection {
+  margin-bottom: var(--space-md);
+}
+
+.nicknameLabel {
+  display: block;
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-bottom: var(--space-xs);
+}
+
+.nicknameInput {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 500;
+  text-align: center;
+  border: 2px solid var(--color-secondary-dark);
+  border-radius: var(--radius-md);
+  background: var(--color-secondary-light);
+  color: var(--color-text);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.nicknameInput:focus {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.nicknameInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.cardActions {
+  padding: 0 var(--space-lg) var(--space-lg);
+  padding-bottom: calc(var(--safe-bottom) + var(--space-lg));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+}

@@ -1,0 +1,237 @@
+/* Home Screen Styles */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.bgSvg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  padding-top: calc(var(--safe-top) + var(--space-md));
+}
+
+.logo {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.headerRight {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.iconButton {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--color-secondary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  background: var(--color-accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.petArea {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  padding: var(--space-md);
+}
+
+.petsContainer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-lg);
+}
+
+.petSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.petSlot:first-child {
+  order: 1;
+}
+
+.petSlot:nth-child(2) {
+  order: 0;
+  margin-bottom: var(--space-md);
+}
+
+.petSlot:nth-child(3) {
+  order: 2;
+}
+
+.petLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: var(--space-xs);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-secondary-dark);
+}
+
+.petNickname {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.petLevel {
+  font-size: var(--text-small);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.emptySlot {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.emptyIcon {
+  width: 60px;
+  height: 60px;
+  border: 3px dashed var(--color-text-muted);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--color-text-muted);
+}
+
+.emptyText {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+  text-align: center;
+}
+
+.statsArea {
+  position: relative;
+  z-index: 5;
+  padding: 0 var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.statsGrid {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  margin-bottom: var(--space-md);
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.statIcon {
+  width: 36px;
+  height: 36px;
+  background: var(--color-secondary-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.statValue {
+  font-size: var(--text-body);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.statDivider {
+  width: 1px;
+  height: 40px;
+  background: var(--color-secondary-dark);
+}
+
+.progressSection {
+  text-align: center;
+}
+
+.progressHint {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+}
+
+.actions {
+  position: relative;
+  z-index: 5;
+  padding: var(--space-md);
+  padding-bottom: calc(var(--safe-bottom) + var(--space-md));
+  background: linear-gradient(180deg, transparent 0%, var(--color-background) 30%);
+}
+
+.secondaryActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.secondaryActions button {
+  flex: 1;
+}

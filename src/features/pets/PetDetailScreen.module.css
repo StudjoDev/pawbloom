@@ -1,0 +1,246 @@
+/* Pet Detail Screen Styles */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  padding-top: calc(var(--safe-top) + var(--space-md));
+}
+
+.backButton,
+.editButton {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--color-secondary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.headerTitle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.petName {
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.breedName {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.petDisplay {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  min-height: 40vh;
+  cursor: pointer;
+}
+
+.tapHint {
+  position: absolute;
+  bottom: 20px;
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.speechBubble {
+  position: absolute;
+  top: 10%;
+  background: var(--color-surface);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 2px solid var(--color-secondary-dark);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+  max-width: 200px;
+  text-align: center;
+}
+
+.infoSection {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  padding: var(--space-md);
+  padding-bottom: calc(var(--safe-bottom) + var(--space-md));
+  background: var(--color-background);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  margin-top: -var(--space-lg);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.bondPanel {
+  margin-bottom: var(--space-md);
+}
+
+.bondHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.bondTitle {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.bondLevel {
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.bondXp {
+  display: block;
+  text-align: right;
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.statCard {
+  text-align: center;
+}
+
+.statLabel {
+  display: block;
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.statValue {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.actions button {
+  flex: 1;
+}
+
+.funFact {
+  background: var(--color-secondary-light);
+}
+
+.funFactLabel {
+  display: block;
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.funFactText {
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-lg);
+}
+
+.modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  width: 100%;
+  max-width: 320px;
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: var(--space-md);
+}
+
+.renameInput {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 500;
+  text-align: center;
+  border: 2px solid var(--color-secondary-dark);
+  border-radius: var(--radius-md);
+  background: var(--color-secondary-light);
+  color: var(--color-text);
+  outline: none;
+  margin-bottom: var(--space-md);
+}
+
+.renameInput:focus {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.modalActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.modalActions button {
+  min-width: 100px;
+}

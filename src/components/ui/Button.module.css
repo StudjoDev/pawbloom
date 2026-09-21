@@ -1,0 +1,121 @@
+/* PawBloom Button Styles */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Variants */
+.primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  box-shadow: 
+    0 4px 12px rgba(140, 179, 105, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.primary:hover:not(:disabled) {
+  box-shadow: 
+    0 6px 16px rgba(140, 179, 105, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.secondary {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.accent {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+  color: white;
+  box-shadow: 
+    0 4px 12px rgba(244, 162, 97, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.accent:hover:not(:disabled) {
+  box-shadow: 
+    0 6px 16px rgba(244, 162, 97, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-text);
+}
+
+.ghost:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Sizes */
+.sm {
+  padding: 8px 16px;
+  font-size: var(--text-caption);
+  min-height: 36px;
+}
+
+.md {
+  padding: 12px 24px;
+  font-size: var(--text-body);
+  min-height: 48px;
+}
+
+.lg {
+  padding: 16px 32px;
+  font-size: var(--text-subheading);
+  min-height: 56px;
+}
+
+/* Full width */
+.fullWidth {
+  width: 100%;
+}
+
+/* Icon */
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+/* Label */
+.label {
+  position: relative;
+}
+
+/* Loader */
+.loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

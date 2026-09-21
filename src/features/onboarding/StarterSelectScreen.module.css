@@ -1,0 +1,107 @@
+/* Starter Select Screen Styles */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+  padding: var(--space-lg);
+  padding-top: calc(var(--safe-top) + var(--space-lg));
+  padding-bottom: calc(var(--safe-bottom) + var(--space-lg));
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-sm);
+}
+
+.subtitle {
+  font-size: var(--text-body);
+  color: var(--color-text-secondary);
+}
+
+.petGrid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  overflow-y: auto;
+  padding-bottom: var(--space-md);
+}
+
+.petCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  border: 3px solid transparent;
+}
+
+.petCard.selected {
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-primary-light) 100%);
+}
+
+.selectedBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 32px;
+  height: 32px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.petPreview {
+  flex-shrink: 0;
+}
+
+.petInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.petName {
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.petDesc {
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  margin-bottom: var(--space-sm);
+}
+
+.catchPhrase {
+  font-size: var(--text-small);
+  font-style: italic;
+  color: var(--color-primary);
+  background: var(--color-secondary-light);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  display: inline-block;
+}
+
+.footer {
+  margin-top: var(--space-md);
+}

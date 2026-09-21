@@ -1,0 +1,64 @@
+/* PawBloom Panel Styles */
+
+.panel {
+  background: var(--color-surface);
+  position: relative;
+}
+
+/* Variants */
+.default {
+  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--color-secondary-dark);
+}
+
+.elevated {
+  box-shadow: var(--shadow-md);
+  border: 2px solid var(--color-secondary);
+}
+
+.outlined {
+  background: transparent;
+  border: 2px solid var(--color-secondary-dark);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--shadow-md);
+}
+
+/* Padding */
+.padding-none {
+  padding: 0;
+}
+
+.padding-sm {
+  padding: var(--space-sm);
+}
+
+.padding-md {
+  padding: var(--space-md);
+}
+
+.padding-lg {
+  padding: var(--space-lg);
+}
+
+/* Border Radius */
+.rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
+.rounded-md {
+  border-radius: var(--radius-md);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+
+.rounded-xl {
+  border-radius: var(--radius-xl);
+}
