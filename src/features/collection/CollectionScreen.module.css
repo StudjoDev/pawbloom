@@ -1,0 +1,187 @@
+/* Collection Screen Styles */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  padding-top: calc(var(--safe-top) + var(--space-md));
+  background: var(--color-surface);
+  border-bottom: 2px solid var(--color-secondary-dark);
+}
+
+.backButton {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--color-secondary-light);
+  border: 2px solid var(--color-secondary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.progress {
+  background: var(--color-primary-light);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+}
+
+.progressText {
+  font-size: var(--text-caption);
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.progressBar {
+  height: 6px;
+  background: var(--color-secondary);
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  transition: width 0.5s ease-out;
+}
+
+.filters {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
+.filterBtn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-secondary-dark);
+  background: var(--color-surface);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filterBtn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.filterBtn:hover:not(.active) {
+  background: var(--color-secondary-light);
+}
+
+.gridContainer {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--space-md) var(--space-md);
+  padding-bottom: calc(var(--safe-bottom) + var(--space-md));
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.petCard {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.petCard:hover {
+  transform: translateY(-2px);
+}
+
+.petCard.undiscovered {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.petCard.undiscovered:hover {
+  transform: none;
+}
+
+.petImage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xs);
+}
+
+.countBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--color-accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+.petInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+}
+
+.petName {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.rarityDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+.emptyState p {
+  font-size: var(--text-body);
+  color: var(--color-text-muted);
+  text-align: center;
+}

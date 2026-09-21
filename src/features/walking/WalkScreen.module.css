@@ -1,0 +1,267 @@
+/* PawBloom Walk Screen - P0-1 Approach Tension */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-background);
+}
+
+/* Parallax background */
+.parallaxContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.parallax {
+  position: absolute;
+  inset: 0;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+.skyLayer,
+.farLayer,
+.midLayer,
+.groundLayer,
+.foregroundLayer {
+  position: absolute;
+  width: 200%;
+  height: 100%;
+  left: 0;
+}
+
+.skyLayer {
+  top: 0;
+  height: 40%;
+}
+
+.farLayer {
+  top: 25%;
+  height: 30%;
+}
+
+.midLayer {
+  top: 35%;
+  height: 40%;
+}
+
+.groundLayer {
+  bottom: 0;
+  height: 35%;
+}
+
+.foregroundLayer {
+  bottom: 0;
+  height: 20%;
+}
+
+/* Header */
+.header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--space-md) + var(--safe-top, 0px)) var(--space-md) var(--space-sm);
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, transparent 100%);
+}
+
+.backButton {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.envLabel {
+  background: var(--color-surface);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+.envName {
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.stepCounter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: var(--color-surface);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.stepValue {
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.stepLabel {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+/* Walk area - pets must be on the ground path, not floating over trees */
+.walkArea {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  /* Position pets on the path band - must be BELOW tree canopy */
+  /* Ground layer is bottom 35%, path is at y=80 of that layer */
+  /* Trees (midLayer) are at top 35%-75% */
+  /* So pets should be at bottom ~20-25% to be on the path */
+  bottom: 18%;
+  height: auto;
+}
+
+.petsWalking {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding-left: 8%;
+  gap: 4px;
+}
+
+.walkingPet {
+  position: relative;
+  flex-shrink: 0;
+  /* Ground shadow is handled by PetSprite */
+}
+
+/* Approach hints */
+.rustleEffect {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.footprintHint {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 24px;
+}
+
+/* Controls */
+.controls {
+  position: relative;
+  z-index: 10;
+  padding: 0 var(--space-md) calc(var(--space-lg) + var(--safe-bottom, 0px));
+}
+
+/* Mystery section - approach tension */
+.mysterySection {
+  margin-bottom: var(--space-md);
+}
+
+.mysteryHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.mysteryIcon {
+  font-size: 20px;
+}
+
+.mysteryLabel {
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.mysteryDistance {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Progress track */
+.progressTrack {
+  position: relative;
+  height: 10px;
+  background: var(--color-secondary);
+  border-radius: 5px;
+  overflow: visible;
+}
+
+.progressFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.progressPaw {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  transition: left 0.3s ease;
+}
+
+/* Walk control */
+.walkControl {
+  margin-top: var(--space-sm);
+}
+
+/* Dev controls */
+.devControls {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed var(--color-secondary);
+}
+
+.devControls button {
+  flex: 1;
+}

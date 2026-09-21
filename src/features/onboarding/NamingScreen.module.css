@@ -1,0 +1,168 @@
+/* Naming Screen Styles */
+
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--color-sky-light) 0%, var(--color-background) 50%);
+  padding: var(--space-lg);
+  padding-top: calc(var(--safe-top) + var(--space-xl));
+  padding-bottom: calc(var(--safe-bottom) + var(--space-lg));
+}
+
+.petDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  position: relative;
+}
+
+.speechBubble {
+  position: absolute;
+  bottom: -10px;
+  background: var(--color-surface);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--color-secondary-dark);
+  max-width: 200px;
+  text-align: center;
+}
+
+.speechBubble::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid var(--color-secondary-dark);
+}
+
+.speechBubble::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--color-surface);
+}
+
+.speechBubble p {
+  font-size: var(--text-caption);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.formContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-heading);
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: var(--space-xs);
+}
+
+.subtitle {
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.subtitle strong {
+  color: var(--color-primary);
+}
+
+.inputWrapper {
+  position: relative;
+  margin-bottom: var(--space-md);
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-md);
+  font-family: var(--font-display);
+  font-size: var(--text-subheading);
+  font-weight: 600;
+  text-align: center;
+  border: 3px solid var(--color-secondary-dark);
+  border-radius: var(--radius-lg);
+  background: var(--color-secondary-light);
+  color: var(--color-text);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.charCount {
+  position: absolute;
+  right: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.suggestions {
+  margin-bottom: var(--space-lg);
+}
+
+.suggestLabel {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
+  text-align: center;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.chip {
+  padding: 6px 14px;
+  background: var(--color-secondary);
+  border: 2px solid var(--color-secondary-dark);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chip:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+}
